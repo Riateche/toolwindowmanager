@@ -71,18 +71,18 @@ void ToolWindowManager::setCentralWidget(QWidget *widget) {
 
 }
 
-void ToolWindowManager::addToolWindow(QWidget *widget) {
-  if (!widget) {
+void ToolWindowManager::addToolWindow(QWidget *toolWindow) {
+  if (!toolWindow) {
     qWarning("cannot add null widget");
     return;
   }
-  if (m_toolWindows.contains(widget)) {
+  if (m_toolWindows.contains(toolWindow)) {
     qWarning("this tool window has already been added");
     return;
   }
-  m_toolWindows << widget;
+  m_toolWindows << toolWindow;
   QTabWidget* tabWidget = createTabWidget();
-  tabWidget->addTab(widget, widget->windowIcon(), widget->windowTitle());
+  tabWidget->addTab(toolWindow, toolWindow->windowIcon(), toolWindow->windowTitle());
 }
 
 QWidget *ToolWindowManager::createDockItem(QWidget* toolWindow, Qt::Orientation parentOrientation) {
@@ -106,10 +106,25 @@ QTabWidget *ToolWindowManager::createTabWidget() {
 
 }
 
-void ToolWindowManager::deleteEmptyItems(QTabWidget *tabWidget) {
-  if (tabWidget->count() == 0) {
-    tabWidget->deleteLater();
-    QSplitter* splitter = qobject_cast<QSplitter*>(tabWidget->parentWidget());
+
+void ToolWindowManager::hidePlaceHolder() {
+  m_placeHolder->hide();
+  m_placeHolder->setParent(0);
+  if (m_dropSuggestionSwitchTimer.isActive()) {
+    m_dropSuggestionSwitchTimer.stop();
+  }
+}
+
+void ToolWindowManager::releaseToolWindow(QWidget *toolWindow) {
+  QTabWidget* previousTabWidget = findClosestParent<QTabWidget*>(toolWindow);
+  if (!previousTabWidget) {
+    qWarning("cannot find tab widget for tool window");
+    return;
+  }
+  previousTabWidget->removeTab(previousTabWidget->indexOf(toolWindow));
+  if (previousTabWidget->count() == 0) {
+    previousTabWidget->deleteLater();
+    QSplitter* splitter = qobject_cast<QSplitter*>(previousTabWidget->parentWidget());
     while(splitter) {
       if (splitter->count() == 1) {
         splitter->deleteLater();
@@ -118,14 +133,6 @@ void ToolWindowManager::deleteEmptyItems(QTabWidget *tabWidget) {
         break;
       }
     }
-  }
-}
-
-void ToolWindowManager::hidePlaceHolder() {
-  m_placeHolder->hide();
-  m_placeHolder->setParent(0);
-  if (m_dropSuggestionSwitchTimer.isActive()) {
-    m_dropSuggestionSwitchTimer.stop();
   }
 }
 
@@ -230,7 +237,13 @@ bool ToolWindowManager::eventFilter(QObject *object, QEvent *event) {
     mimeData->setData(m_dragMimeType, QByteArray::number(m_toolWindows.indexOf(toolWindow)));
     drag->setMimeData(mimeData);
     drag->setPixmap(generateDragPixmap(toolWindow));
-    drag->exec(Qt::MoveAction);
+    Qt::DropAction dropAction = drag->exec(Qt::MoveAction);
+    if (dropAction == Qt::IgnoreAction) {
+      releaseToolWindow(toolWindow);
+      QTabWidget* newTabWidget = createTabWidget();
+      newTabWidget->addTab(toolWindow, toolWindow->windowIcon(), toolWindow->windowTitle());
+      newTabWidget->move(QCursor::pos());
+    }
   }
   return false;
 }
@@ -289,17 +302,12 @@ void ToolWindowManager::dropEvent(QDropEvent *event) {
     return;
   }
   QWidget* toolWindow = m_toolWindows[toolWindowIndex];
-  QTabWidget* previousTabWidget = findClosestParent<QTabWidget*>(toolWindow);
-  if (!previousTabWidget) {
-    qWarning("cannot find tab widget for tool window");
-    return;
-  }
-  previousTabWidget->removeTab(previousTabWidget->indexOf(toolWindow));
-  deleteEmptyItems(previousTabWidget);
+  releaseToolWindow(toolWindow);
 
   int index = splitter->indexOf(m_placeHolder);
   hidePlaceHolder();
   splitter->insertWidget(index, createDockItem(toolWindow, splitter->orientation()));
+  event->acceptProposedAction();
 
   Q_UNUSED(event);
 }

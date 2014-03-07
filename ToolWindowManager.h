@@ -14,7 +14,7 @@ public:
   virtual ~ToolWindowManager();
   void setCentralWidget(QWidget* widget);
   QWidget* centralWidget() { return m_centralWidget; }
-  void addToolWindow(QWidget* widget);
+  void addToolWindow(QWidget* toolWindow);
 
 
 signals:
@@ -40,6 +40,7 @@ private:
 
   void deleteEmptyItems(QTabWidget* tabWidget);
   void hidePlaceHolder();
+  void releaseToolWindow(QWidget* toolWindow);
 
 protected:
   virtual bool eventFilter(QObject *object, QEvent *event);
