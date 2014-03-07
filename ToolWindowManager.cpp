@@ -179,22 +179,26 @@ void ToolWindowManager::dragMoveEvent(QDragMoveEvent *event) {
         QWidget* widget = splitter->widget(widgetIndex);
         QPoint localPos = widget->mapFromGlobal(globalPos);
         if (splitter->orientation() == Qt::Horizontal) {
-          if (qAbs(localPos.x()) < m_borderSensitivity) {
-            indexUnderMouse = widgetIndex;
-            break;
-          }
-          if (qAbs(localPos.x() - widget->width()) < m_borderSensitivity) {
-            indexUnderMouse = widgetIndex + 1;
-            break;
+          if (localPos.y() >= 0 && localPos.y() < widget->height()) {
+            if (qAbs(localPos.x()) < m_borderSensitivity) {
+              indexUnderMouse = widgetIndex;
+              break;
+            }
+            if (qAbs(localPos.x() - widget->width()) < m_borderSensitivity) {
+              indexUnderMouse = widgetIndex + 1;
+              break;
+            }
           }
         } else {
-          if (qAbs(localPos.y()) < m_borderSensitivity) {
-            indexUnderMouse = widgetIndex;
-            break;
-          }
-          if (qAbs(localPos.y() - widget->height()) < m_borderSensitivity) {
-            indexUnderMouse = widgetIndex + 1;
-            break;
+          if (localPos.x() >= 0 && localPos.x() < widget->width()) {
+            if (qAbs(localPos.y()) < m_borderSensitivity) {
+              indexUnderMouse = widgetIndex;
+              break;
+            }
+            if (qAbs(localPos.y() - widget->height()) < m_borderSensitivity) {
+              indexUnderMouse = widgetIndex + 1;
+              break;
+            }
           }
         }
       }
