@@ -11,20 +11,12 @@ MainWindow::MainWindow(QWidget *parent) :
   setAttribute(Qt::WA_DeleteOnClose);
   ui->toolWindowManager->setCentralWidget(new QTextEdit());
 
-  QPushButton* b1 = new QPushButton("tool1");
-  b1->setWindowTitle("tool1");
-  ui->toolWindowManager->addToolWindow(b1);
+  for(int i = 0; i < 6; i++) {
 
-  QPushButton* b2 = new QPushButton("tool2");
-  b2->setWindowTitle("tool2");
-  ui->toolWindowManager->addToolWindow(b2);
-
-  QPushButton* b3 = new QPushButton("tool3");
-  b3->setWindowTitle("tool3");
-  ui->toolWindowManager->addToolWindow(b3);
-
-  //ui->toolWindowManager->addToolWindow(new QPushButton("tool2"));
-  //ui->toolWindowManager->addToolWindow(new QPushButton("tool3"));
+    QPushButton* b1 = new QPushButton(QString("tool%1").arg(i + 1));
+    b1->setWindowTitle(b1->text());
+    ui->toolWindowManager->addToolWindow(b1);
+  }
 }
 
 MainWindow::~MainWindow() {

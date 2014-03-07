@@ -5,7 +5,7 @@
 #include <QSplitter>
 #include <QTabWidget>
 #include <QTabBar>
-
+#include <QTimer>
 
 class ToolWindowManager : public QWidget {
   Q_OBJECT
@@ -29,13 +29,17 @@ private:
   QWidget* m_placeHolder;
   QString m_dragMimeType;
 
+  int m_dropCurrentSuggestionIndex;
+  QPoint m_dropGlobalPos;
+  QTimer m_dropSuggestionSwitchTimer;
+
   QHash<QTabBar*, QTabWidget*> m_hash_tabbar_to_tabwidget;
 
   QWidget* createDockItem(QWidget *toolWindow, Qt::Orientation parentOrientation);
   QTabWidget* createTabWidget();
 
   void deleteEmptyItems(QTabWidget* tabWidget);
-
+  void hidePlaceHolder();
 
 protected:
   virtual bool eventFilter(QObject *object, QEvent *event);
@@ -45,6 +49,9 @@ protected:
   virtual void dropEvent(QDropEvent *event);
 
   virtual QPixmap generateDragPixmap(QWidget *toolWindow);
+
+private slots:
+  void dropSuggestionSwitchTimeout();
 
 };
 
