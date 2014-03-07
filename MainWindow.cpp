@@ -10,7 +10,9 @@ MainWindow::MainWindow(QWidget *parent) :
   ui->setupUi(this);
   ui->toolWindowManager->setCentralWidget(new QTextEdit());
 
-  ui->toolWindowManager->addToolWindow(new QPushButton("tool1"));
+  QPushButton* b1 = new QPushButton("tool1");
+  b1->setWindowTitle("tool1");
+  ui->toolWindowManager->addToolWindow(b1);
   //ui->toolWindowManager->addToolWindow(new QPushButton("tool2"));
   //ui->toolWindowManager->addToolWindow(new QPushButton("tool3"));
 }

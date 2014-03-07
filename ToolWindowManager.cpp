@@ -3,6 +3,9 @@
 #include <QDebug>
 #include <QEvent>
 #include <QApplication>
+#include <QDrag>
+#include <QMimeData>
+#include <QMouseEvent>
 
 ToolWindowManager::ToolWindowManager(QWidget *parent) :
   QWidget(parent)
@@ -26,6 +29,10 @@ ToolWindowManager::ToolWindowManager(QWidget *parent) :
   m_placeHolder->setAutoFillBackground(true);
 }
 
+ToolWindowManager::~ToolWindowManager() {
+  //todo: delete all tool windows
+}
+
 void ToolWindowManager::setCentralWidget(QWidget *widget) {
   if(m_centralWidget) {
     m_centralWidget->deleteLater();
@@ -37,14 +44,52 @@ void ToolWindowManager::setCentralWidget(QWidget *widget) {
 
 void ToolWindowManager::addToolWindow(QWidget *widget) {
   m_toolWindows << widget;
-  widget->setWindowFlags(widget->windowFlags() & Qt::Tool);
-  widget->setParent(0);
-  widget->show();
-  widget->installEventFilter(this);
+
+  QTabWidget* tabWidget = new QTabWidget();
+  tabWidget->setWindowFlags(widget->windowFlags() & Qt::Tool);
+  tabWidget->addTab(widget, widget->windowIcon(), widget->windowTitle());
+  tabWidget->setMovable(true);
+  tabWidget->show();
+  tabWidget->tabBar()->installEventFilter(this);
+  m_hash_tabbar_to_tabwidget[tabWidget->tabBar()] = tabWidget;
+
+  //widget->installEventFilter(this);
 
 }
 
+QPixmap ToolWindowManager::generateDragPixmap(QWidget* toolWindow) {
+  QTabBar widget;
+  widget.addTab(toolWindow->windowIcon(), toolWindow->windowTitle());
+  return widget.grab();
+}
+
 bool ToolWindowManager::eventFilter(QObject *object, QEvent *event) {
+  QTabBar* tabBar = qobject_cast<QTabBar*>(object);
+  if (tabBar && event->type() == QEvent::MouseMove) {
+    if (tabBar->rect().contains(static_cast<QMouseEvent*>(event)->pos())) {
+      return false;
+    }
+    if (!(qApp->mouseButtons() & Qt::LeftButton)) {
+      return false;
+    }
+    QTabWidget* tabWidget = m_hash_tabbar_to_tabwidget[tabBar];
+    if (!tabWidget) { return false; }
+    QWidget* toolWindow = tabWidget->currentWidget();
+    if (!toolWindow) { return false; }
+    QMouseEvent* releaseEvent = new QMouseEvent(QEvent::MouseButtonRelease,
+                                                static_cast<QMouseEvent*>(event)->localPos(),
+                                                Qt::LeftButton, Qt::LeftButton, 0);
+    qApp->sendEvent(tabBar, releaseEvent);
+    QPixmap pixmap(16, 16);
+    pixmap.fill(Qt::red);
+    QDrag* drag = new QDrag(this);
+    QMimeData* mimeData = new QMimeData();
+    drag->setMimeData(mimeData);
+    drag->setPixmap(generateDragPixmap(toolWindow));
+    drag->exec(Qt::MoveAction);
+  }
+  return false;
+  qDebug() << "buttons" << (qApp->mouseButtons() & Qt::LeftButton);
   if (m_toolWindows.contains(static_cast<QWidget*>(object)) && event->type() == QEvent::Move) {
     QPoint globalPos = QCursor::pos();
     if(m_placeHolder->isVisible()) {
