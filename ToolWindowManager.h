@@ -24,13 +24,17 @@ public slots:
 private:
   QWidget* m_centralWidget;
   QWidget* m_centralWidgetContainer;
-  QSplitter* m_mainSplitter;
   QList<QWidget*> m_toolWindows;
   int m_borderSensitivity;
   QWidget* m_placeHolder;
   QString m_dragMimeType;
 
   QHash<QTabBar*, QTabWidget*> m_hash_tabbar_to_tabwidget;
+
+  QWidget* createDockItem(QWidget *toolWindow, Qt::Orientation parentOrientation);
+  QTabWidget* createTabWidget();
+
+  void deleteEmptyItems(QTabWidget* tabWidget);
 
 
 protected:

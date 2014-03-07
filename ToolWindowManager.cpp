@@ -7,6 +7,17 @@
 #include <QMimeData>
 #include <QMouseEvent>
 
+template<class T>
+T findClosestParent(QWidget* widget) {
+  while(widget) {
+    if (qobject_cast<T>(widget)) {
+      return static_cast<T>(widget);
+    }
+    widget = widget->parentWidget();
+  }
+  return 0;
+}
+
 ToolWindowManager::ToolWindowManager(QWidget *parent) :
   QWidget(parent)
 {
@@ -14,13 +25,17 @@ ToolWindowManager::ToolWindowManager(QWidget *parent) :
   m_dragMimeType = "application/x-tool-window-id";
 
   m_centralWidget = 0;
-  m_mainSplitter = new QSplitter();
+  QSplitter* mainSplitter1 = new QSplitter();
+  mainSplitter1->setOrientation(Qt::Horizontal);
   QVBoxLayout* mainLayout = new QVBoxLayout(this);
-  mainLayout->addWidget(m_mainSplitter);
+  mainLayout->addWidget(mainSplitter1);
   mainLayout->setContentsMargins(0, 0, 0, 0);
 
+  QSplitter* mainSplitter2 = new QSplitter();
+  mainSplitter2->setOrientation(Qt::Vertical);
+  mainSplitter1->addWidget(mainSplitter2);
   m_centralWidgetContainer = new QWidget();
-  m_mainSplitter->addWidget(m_centralWidgetContainer);
+  mainSplitter2->addWidget(m_centralWidgetContainer);
   QVBoxLayout* layout = new QVBoxLayout(m_centralWidgetContainer);
   layout->setContentsMargins(0, 0, 0, 0);
   m_placeHolder = new QWidget();
@@ -28,12 +43,18 @@ ToolWindowManager::ToolWindowManager(QWidget *parent) :
   palette.setColor(QPalette::Window, palette.color(QPalette::Highlight));
   m_placeHolder->setPalette(palette);
   m_placeHolder->setAutoFillBackground(true);
-  m_placeHolder->setAcceptDrops(false);
   setAcceptDrops(true);
 }
 
 ToolWindowManager::~ToolWindowManager() {
-  //todo: delete all tool windows
+  foreach(QWidget* toolWindow, m_toolWindows) {
+    QTabWidget* tabWidget = findClosestParent<QTabWidget*>(toolWindow);
+    if (!tabWidget) {
+      qWarning("cannot find tab widget for tool window");
+    } else {
+      delete tabWidget;
+    }
+  }
 }
 
 void ToolWindowManager::setCentralWidget(QWidget *widget) {
@@ -46,18 +67,55 @@ void ToolWindowManager::setCentralWidget(QWidget *widget) {
 }
 
 void ToolWindowManager::addToolWindow(QWidget *widget) {
+  if (!widget) {
+    qWarning("cannot add null widget");
+    return;
+  }
+  if (m_toolWindows.contains(widget)) {
+    qWarning("this tool window has already been added");
+    return;
+  }
   m_toolWindows << widget;
-
-  QTabWidget* tabWidget = new QTabWidget();
-  tabWidget->setWindowFlags(widget->windowFlags() & Qt::Tool);
+  QTabWidget* tabWidget = createTabWidget();
   tabWidget->addTab(widget, widget->windowIcon(), widget->windowTitle());
+}
+
+QWidget *ToolWindowManager::createDockItem(QWidget* toolWindow, Qt::Orientation parentOrientation) {
+  QSplitter* splitter = new QSplitter();
+  splitter->setOrientation(parentOrientation == Qt::Horizontal ? Qt::Vertical : Qt::Horizontal);
+  QTabWidget* tabWidget = createTabWidget();
+  tabWidget->addTab(toolWindow, toolWindow->windowIcon(), toolWindow->windowTitle());
+  splitter->addWidget(tabWidget);
+  return splitter;
+}
+
+QTabWidget *ToolWindowManager::createTabWidget() {
+  QTabWidget* tabWidget = new QTabWidget();
+  tabWidget->setWindowFlags(tabWidget->windowFlags() & Qt::Tool);
   tabWidget->setMovable(true);
   tabWidget->show();
   tabWidget->tabBar()->installEventFilter(this);
   m_hash_tabbar_to_tabwidget[tabWidget->tabBar()] = tabWidget;
+  return tabWidget;
+  //todo: clear m_hash_tabbar_to_tabwidget when widgets are destroyed
 
-  //widget->installEventFilter(this);
+}
 
+void ToolWindowManager::deleteEmptyItems(QTabWidget *tabWidget) {
+  if (tabWidget->count() == 0) {
+    qDebug() << "deleting tabwidget";
+    tabWidget->deleteLater();
+    QSplitter* splitter = qobject_cast<QSplitter*>(tabWidget->parentWidget());
+    while(splitter) {
+      if (splitter->count() == 1) {
+        splitter->deleteLater();
+        splitter = qobject_cast<QSplitter*>(splitter->parentWidget());
+        qDebug() << "deleting splitter";
+      } else {
+        break;
+      }
+    }
+  }
 }
 
 QPixmap ToolWindowManager::generateDragPixmap(QWidget* toolWindow) {
@@ -95,24 +153,16 @@ bool ToolWindowManager::eventFilter(QObject *object, QEvent *event) {
     drag->exec(Qt::MoveAction);
   }
   return false;
-  //qDebug() << "buttons" << (qApp->mouseButtons() & Qt::LeftButton);
-  //if (m_toolWindows.contains(static_cast<QWidget*>(object)) && event->type() == QEvent::Move) {
-
-  //}
-  //return false;
 }
 
 void ToolWindowManager::dragEnterEvent(QDragEnterEvent *event) {
   if (event->mimeData()->formats().contains(m_dragMimeType)) {
     event->accept();
-    //qDebug() << "drag enter" << event->pos();
   }
 }
 
 void ToolWindowManager::dragMoveEvent(QDragMoveEvent *event) {
-  //event->ignore();
   QPoint globalPos = mapToGlobal(event->pos());
-  //qDebug() << "drag move!" << globalPos;
   if(m_placeHolder->isVisible()) {
     QRect placeHolderRect = m_placeHolder->rect();
     placeHolderRect.adjust(-m_borderSensitivity, -m_borderSensitivity,
@@ -120,7 +170,6 @@ void ToolWindowManager::dragMoveEvent(QDragMoveEvent *event) {
     if (!placeHolderRect.contains(m_placeHolder->mapFromGlobal(globalPos))) {
       m_placeHolder->hide();
       m_placeHolder->setParent(0);
-      //qDebug() << "placeholder removed";
     }
   } else {
     foreach(QSplitter* splitter, findChildren<QSplitter*>()) {
@@ -149,7 +198,6 @@ void ToolWindowManager::dragMoveEvent(QDragMoveEvent *event) {
           }
         }
       }
-      //qDebug() << "index" << indexUnderMouse;
       if(indexUnderMouse >= 0) {
         QSize placeHolderSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
         if (splitter->orientation() == Qt::Horizontal) {
@@ -181,8 +229,38 @@ void ToolWindowManager::dragLeaveEvent(QDragLeaveEvent *event) {
   Q_UNUSED(event);
 }
 
+
 void ToolWindowManager::dropEvent(QDropEvent *event) {
+  if (!m_placeHolder->isVisible()) {
+    qWarning("unexpected drop event");
+    return;
+  }
   qDebug() << "drop!";
+  QSplitter* splitter = qobject_cast<QSplitter*>(m_placeHolder->parentWidget());
+  if (!splitter) {
+    qWarning("invalid parent for splitter");
+    return;
+  }
+  bool ok = false;
+  int toolWindowIndex = event->mimeData()->data(m_dragMimeType).toInt(&ok);
+  if (!ok || toolWindowIndex < 0 || toolWindowIndex >= m_toolWindows.count()) {
+    qWarning("invalid index in mime data");
+    return;
+  }
+  QWidget* toolWindow = m_toolWindows[toolWindowIndex];
+  QTabWidget* previousTabWidget = findClosestParent<QTabWidget*>(toolWindow);
+  if (!previousTabWidget) {
+    qWarning("cannot find tab widget for tool window");
+    return;
+  }
+  previousTabWidget->removeTab(previousTabWidget->indexOf(toolWindow));
+  deleteEmptyItems(previousTabWidget);
+
+  int index = splitter->indexOf(m_placeHolder);
+  m_placeHolder->hide();
+  m_placeHolder->setParent(0);
+  splitter->insertWidget(index, createDockItem(toolWindow, splitter->orientation()));
+
   Q_UNUSED(event);
 }
 
