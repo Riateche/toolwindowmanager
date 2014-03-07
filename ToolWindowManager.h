@@ -23,7 +23,12 @@ private:
   QWidget* m_centralWidgetContainer;
   QSplitter* m_mainSplitter;
   QList<QWidget*> m_toolWindows;
+  int m_borderSensitivity;
+  QWidget* m_placeHolder;
 
+
+protected:
+  bool eventFilter(QObject *object, QEvent *event);
 
 
 };
