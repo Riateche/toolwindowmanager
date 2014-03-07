@@ -100,6 +100,7 @@ QTabWidget *ToolWindowManager::createTabWidget() {
   tabWidget->setMovable(true);
   tabWidget->show();
   tabWidget->tabBar()->installEventFilter(this);
+  tabWidget->tabBar()->setAcceptDrops(true);
   m_hash_tabbar_to_tabwidget[tabWidget->tabBar()] = tabWidget;
   return tabWidget;
   //todo: clear m_hash_tabbar_to_tabwidget when widgets are destroyed
@@ -213,36 +214,58 @@ void ToolWindowManager::dropSuggestionSwitchTimeout() {
 
 bool ToolWindowManager::eventFilter(QObject *object, QEvent *event) {
   QTabBar* tabBar = qobject_cast<QTabBar*>(object);
-  if (tabBar && event->type() == QEvent::MouseMove) {
-    if (tabBar->rect().contains(static_cast<QMouseEvent*>(event)->pos())) {
-      return false;
-    }
-    if (!(qApp->mouseButtons() & Qt::LeftButton)) {
-      return false;
-    }
-    QTabWidget* tabWidget = m_hash_tabbar_to_tabwidget[tabBar];
-    if (!tabWidget) { return false; }
-    QWidget* toolWindow = tabWidget->currentWidget();
-    if (!toolWindow || !m_toolWindows.contains(toolWindow)) {
-      return false;
-    }
-    QMouseEvent* releaseEvent = new QMouseEvent(QEvent::MouseButtonRelease,
-                                                static_cast<QMouseEvent*>(event)->localPos(),
-                                                Qt::LeftButton, Qt::LeftButton, 0);
-    qApp->sendEvent(tabBar, releaseEvent);
-    QPixmap pixmap(16, 16);
-    pixmap.fill(Qt::red);
-    QDrag* drag = new QDrag(this);
-    QMimeData* mimeData = new QMimeData();
-    mimeData->setData(m_dragMimeType, QByteArray::number(m_toolWindows.indexOf(toolWindow)));
-    drag->setMimeData(mimeData);
-    drag->setPixmap(generateDragPixmap(toolWindow));
-    Qt::DropAction dropAction = drag->exec(Qt::MoveAction);
-    if (dropAction == Qt::IgnoreAction) {
+  if (tabBar) {
+    if (event->type() == QEvent::MouseMove) {
+      if (tabBar->rect().contains(static_cast<QMouseEvent*>(event)->pos())) {
+        return false;
+      }
+      if (!(qApp->mouseButtons() & Qt::LeftButton)) {
+        return false;
+      }
+      QTabWidget* tabWidget = m_hash_tabbar_to_tabwidget[tabBar];
+      if (!tabWidget) { return false; }
+      QWidget* toolWindow = tabWidget->currentWidget();
+      if (!toolWindow || !m_toolWindows.contains(toolWindow)) {
+        return false;
+      }
+      QMouseEvent* releaseEvent = new QMouseEvent(QEvent::MouseButtonRelease,
+                                                  static_cast<QMouseEvent*>(event)->localPos(),
+                                                  Qt::LeftButton, Qt::LeftButton, 0);
+      qApp->sendEvent(tabBar, releaseEvent);
+      QPixmap pixmap(16, 16);
+      pixmap.fill(Qt::red);
+      QDrag* drag = new QDrag(this);
+      QMimeData* mimeData = new QMimeData();
+      mimeData->setData(m_dragMimeType, QByteArray::number(m_toolWindows.indexOf(toolWindow)));
+      drag->setMimeData(mimeData);
+      drag->setPixmap(generateDragPixmap(toolWindow));
+      Qt::DropAction dropAction = drag->exec(Qt::MoveAction);
+      if (dropAction == Qt::IgnoreAction) {
+        releaseToolWindow(toolWindow);
+        QTabWidget* newTabWidget = createTabWidget();
+        newTabWidget->addTab(toolWindow, toolWindow->windowIcon(), toolWindow->windowTitle());
+        newTabWidget->move(QCursor::pos());
+      }
+    } else if (event->type() == QEvent::DragEnter) {
+      if (static_cast<QDragEnterEvent*>(event)->mimeData()->formats().contains(m_dragMimeType)) {
+        event->accept();
+        hidePlaceHolder();
+      }
+    } else if (event->type() == QEvent::DragMove) {
+      event->accept();
+    } else if (event->type() == QEvent::Drop) {
+      bool ok = false;
+      int toolWindowIndex = static_cast<QDropEvent*>(event)->mimeData()->data(m_dragMimeType).toInt(&ok);
+      if (!ok || toolWindowIndex < 0 || toolWindowIndex >= m_toolWindows.count()) {
+        qWarning("invalid index in mime data");
+        return false;
+      }
+      QWidget* toolWindow = m_toolWindows[toolWindowIndex];
       releaseToolWindow(toolWindow);
-      QTabWidget* newTabWidget = createTabWidget();
-      newTabWidget->addTab(toolWindow, toolWindow->windowIcon(), toolWindow->windowTitle());
-      newTabWidget->move(QCursor::pos());
+      QTabWidget* tabWidget = m_hash_tabbar_to_tabwidget[tabBar];
+      if (!tabWidget) { return false; }
+      tabWidget->addTab(toolWindow, toolWindow->windowIcon(), toolWindow->windowTitle());
+      static_cast<QDropEvent*>(event)->acceptProposedAction();
     }
   }
   return false;
