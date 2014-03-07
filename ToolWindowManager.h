@@ -28,12 +28,18 @@ private:
   QList<QWidget*> m_toolWindows;
   int m_borderSensitivity;
   QWidget* m_placeHolder;
+  QString m_dragMimeType;
 
   QHash<QTabBar*, QTabWidget*> m_hash_tabbar_to_tabwidget;
 
 
 protected:
-  bool eventFilter(QObject *object, QEvent *event);  
+  virtual bool eventFilter(QObject *object, QEvent *event);
+  virtual void dragEnterEvent(QDragEnterEvent* event);
+  virtual void dragMoveEvent(QDragMoveEvent *event);
+  virtual void dragLeaveEvent(QDragLeaveEvent *event);
+  virtual void dropEvent(QDropEvent *event);
+
   virtual QPixmap generateDragPixmap(QWidget *toolWindow);
 
 };

@@ -11,6 +11,7 @@ ToolWindowManager::ToolWindowManager(QWidget *parent) :
   QWidget(parent)
 {
   m_borderSensitivity = 10;
+  m_dragMimeType = "application/x-tool-window-id";
 
   m_centralWidget = 0;
   m_mainSplitter = new QSplitter();
@@ -27,6 +28,8 @@ ToolWindowManager::ToolWindowManager(QWidget *parent) :
   palette.setColor(QPalette::Window, palette.color(QPalette::Highlight));
   m_placeHolder->setPalette(palette);
   m_placeHolder->setAutoFillBackground(true);
+  m_placeHolder->setAcceptDrops(false);
+  setAcceptDrops(true);
 }
 
 ToolWindowManager::~ToolWindowManager() {
@@ -75,7 +78,9 @@ bool ToolWindowManager::eventFilter(QObject *object, QEvent *event) {
     QTabWidget* tabWidget = m_hash_tabbar_to_tabwidget[tabBar];
     if (!tabWidget) { return false; }
     QWidget* toolWindow = tabWidget->currentWidget();
-    if (!toolWindow) { return false; }
+    if (!toolWindow || !m_toolWindows.contains(toolWindow)) {
+      return false;
+    }
     QMouseEvent* releaseEvent = new QMouseEvent(QEvent::MouseButtonRelease,
                                                 static_cast<QMouseEvent*>(event)->localPos(),
                                                 Qt::LeftButton, Qt::LeftButton, 0);
@@ -84,66 +89,101 @@ bool ToolWindowManager::eventFilter(QObject *object, QEvent *event) {
     pixmap.fill(Qt::red);
     QDrag* drag = new QDrag(this);
     QMimeData* mimeData = new QMimeData();
+    mimeData->setData(m_dragMimeType, QByteArray::number(m_toolWindows.indexOf(toolWindow)));
     drag->setMimeData(mimeData);
     drag->setPixmap(generateDragPixmap(toolWindow));
     drag->exec(Qt::MoveAction);
   }
   return false;
-  qDebug() << "buttons" << (qApp->mouseButtons() & Qt::LeftButton);
-  if (m_toolWindows.contains(static_cast<QWidget*>(object)) && event->type() == QEvent::Move) {
-    QPoint globalPos = QCursor::pos();
-    if(m_placeHolder->isVisible()) {
-      QRect placeHolderRect = m_placeHolder->rect();
-      placeHolderRect.adjust(-m_borderSensitivity, -m_borderSensitivity,
-                              m_borderSensitivity,  m_borderSensitivity);
-      if (!placeHolderRect.contains(m_placeHolder->mapFromGlobal(globalPos))) {
-        m_placeHolder->hide();
-        m_placeHolder->setParent(0);
-        qDebug() << "placeholder removed";
+  //qDebug() << "buttons" << (qApp->mouseButtons() & Qt::LeftButton);
+  //if (m_toolWindows.contains(static_cast<QWidget*>(object)) && event->type() == QEvent::Move) {
+
+  //}
+  //return false;
+}
+
+void ToolWindowManager::dragEnterEvent(QDragEnterEvent *event) {
+  if (event->mimeData()->formats().contains(m_dragMimeType)) {
+    event->accept();
+    //qDebug() << "drag enter" << event->pos();
+  }
+}
+
+void ToolWindowManager::dragMoveEvent(QDragMoveEvent *event) {
+  //event->ignore();
+  QPoint globalPos = mapToGlobal(event->pos());
+  //qDebug() << "drag move!" << globalPos;
+  if(m_placeHolder->isVisible()) {
+    QRect placeHolderRect = m_placeHolder->rect();
+    placeHolderRect.adjust(-m_borderSensitivity, -m_borderSensitivity,
+                            m_borderSensitivity,  m_borderSensitivity);
+    if (!placeHolderRect.contains(m_placeHolder->mapFromGlobal(globalPos))) {
+      m_placeHolder->hide();
+      m_placeHolder->setParent(0);
+      //qDebug() << "placeholder removed";
+    }
+  } else {
+    foreach(QSplitter* splitter, findChildren<QSplitter*>()) {
+      int widgetsCount = splitter->count();
+      int indexUnderMouse = -1;
+      for(int widgetIndex = 0; widgetIndex < widgetsCount; ++widgetIndex) {
+        QWidget* widget = splitter->widget(widgetIndex);
+        QPoint localPos = widget->mapFromGlobal(globalPos);
+        if (splitter->orientation() == Qt::Horizontal) {
+          if (qAbs(localPos.x()) < m_borderSensitivity) {
+            indexUnderMouse = widgetIndex;
+            break;
+          }
+          if (qAbs(localPos.x() - widget->width()) < m_borderSensitivity) {
+            indexUnderMouse = widgetIndex + 1;
+            break;
+          }
+        } else {
+          if (qAbs(localPos.y()) < m_borderSensitivity) {
+            indexUnderMouse = widgetIndex;
+            break;
+          }
+          if (qAbs(localPos.y() - widget->height()) < m_borderSensitivity) {
+            indexUnderMouse = widgetIndex + 1;
+            break;
+          }
+        }
       }
-    } else {
-      foreach(QSplitter* splitter, findChildren<QSplitter*>()) {
-        int widgetsCount = splitter->count();
-        int indexUnderMouse = -1;
-        for(int widgetIndex = 0; widgetIndex < widgetsCount; ++widgetIndex) {
-          QWidget* widget = splitter->widget(widgetIndex);
-          QPoint localPos = widget->mapFromGlobal(globalPos);
-          if (splitter->orientation() == Qt::Horizontal) {
-            if (qAbs(localPos.x()) < m_borderSensitivity) {
-              indexUnderMouse = widgetIndex;
-              break;
-            }
-            if (qAbs(localPos.x() - widget->width()) < m_borderSensitivity) {
-              indexUnderMouse = widgetIndex + 1;
-              break;
-            }
-          } else {
-            if (qAbs(localPos.y()) < m_borderSensitivity) {
-              indexUnderMouse = widgetIndex;
-              break;
-            }
-            if (qAbs(localPos.y() - widget->height()) < m_borderSensitivity) {
-              indexUnderMouse = widgetIndex + 1;
-              break;
-            }
-          }
+      //qDebug() << "index" << indexUnderMouse;
+      if(indexUnderMouse >= 0) {
+        QSize placeHolderSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
+        if (splitter->orientation() == Qt::Horizontal) {
+          placeHolderSize.setWidth(m_borderSensitivity);
+        } else {
+          placeHolderSize.setHeight(m_borderSensitivity);
         }
-        qDebug() << "index" << indexUnderMouse;
-        if(indexUnderMouse >= 0) {
-          QSize placeHolderSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
-          if (splitter->orientation() == Qt::Horizontal) {
-            placeHolderSize.setWidth(m_borderSensitivity);
-          } else {
-            placeHolderSize.setHeight(m_borderSensitivity);
-          }
-          m_placeHolder->setFixedSize(placeHolderSize);
-          splitter->insertWidget(indexUnderMouse, m_placeHolder);
-          m_placeHolder->show();
-          qDebug() << "placeholder inserted";
-          break;
-        }
+        m_placeHolder->setFixedSize(placeHolderSize);
+        splitter->insertWidget(indexUnderMouse, m_placeHolder);
+        m_placeHolder->show();
+        //event->accept();
+        qDebug() << "placeholder inserted";
+        break;
       }
     }
   }
-  return false;
+  event->setAccepted(m_placeHolder->isVisible());
+
 }
+
+void ToolWindowManager::dragLeaveEvent(QDragLeaveEvent *event) {
+  if(m_placeHolder->isVisible()) {
+    QRect placeHolderRect = m_placeHolder->rect();
+    if (!placeHolderRect.contains(m_placeHolder->mapFromGlobal(QCursor::pos()))) {
+      m_placeHolder->hide();
+      m_placeHolder->setParent(0);
+    }
+  }
+  Q_UNUSED(event);
+}
+
+void ToolWindowManager::dropEvent(QDropEvent *event) {
+  qDebug() << "drop!";
+  Q_UNUSED(event);
+}
+
+
