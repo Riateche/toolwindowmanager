@@ -206,6 +206,8 @@ private:
   QWidget* createDockItem(const QList<QWidget*>& toolWindows, Qt::Orientations parentOrientation);
   void hidePlaceHolder();
   void releaseToolWindow(QWidget* toolWindow);
+  void deleteAllEmptyItems();
+  void deleteEmptyItems(QTabWidget* tabWidget);
   void execDrag(const QList<QWidget*>& toolWindows);
 
   QVariantMap saveSplitterState(QSplitter* splitter);

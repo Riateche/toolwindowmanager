@@ -150,6 +150,7 @@ void ToolWindowManager::moveToolWindow(QWidget *toolWindow, ToolWindowManager::D
     int newIndex = tabWidget->addTab(toolWindow, toolWindow->windowIcon(), toolWindow->windowTitle());
     tabWidget->setCurrentIndex(newIndex);
   }
+  deleteAllEmptyItems();
   emit toolWindowVisibilityChanged(toolWindow, true);
 }
 
@@ -162,6 +163,7 @@ void ToolWindowManager::removeToolWindow(QWidget *toolWindow) {
     releaseToolWindow(toolWindow);
   }
   m_toolWindows.removeOne(toolWindow);
+  deleteAllEmptyItems();
 }
 
 void ToolWindowManager::setSuggestionSwitchInterval(int msec) {
@@ -213,18 +215,24 @@ void ToolWindowManager::restoreState(const QVariant &data) {
       releaseToolWindow(toolWindow);
     }
   }
+  deleteAllEmptyItems();
   m_centralWidgetContainer->hide();
   m_centralWidgetContainer->setParent(this);
   delete m_rootSplitter;
   m_rootSplitter = restoreSplitterState(dataMap["rootSplitter"].toMap());
+  if (!m_rootSplitter) {
+    m_rootSplitter = createSplitter();
+  }
   m_rootSplitter->installEventFilter(this);
   m_rootSplitter->setAcceptDrops(true);
   layout()->addWidget(m_rootSplitter);
   foreach(QVariant windowData, dataMap["floatingWindows"].toList()) {
     QSplitter* splitter = restoreSplitterState(windowData.toMap());
-    splitter->installEventFilter(this);
-    splitter->setAcceptDrops(true);
-    splitter->show();
+    if (splitter) {
+      splitter->installEventFilter(this);
+      splitter->setAcceptDrops(true);
+      splitter->show();
+    }
   }
   foreach(QWidget* toolWindow, m_toolWindows) {
     emit toolWindowVisibilityChanged(toolWindow, toolWindow->parentWidget() != 0);
@@ -307,11 +315,21 @@ void ToolWindowManager::releaseToolWindow(QWidget *toolWindow) {
   previousTabWidget->removeTab(previousTabWidget->indexOf(toolWindow));
   toolWindow->hide();
   toolWindow->setParent(0);
-  if (previousTabWidget->count() == 0 && m_rectPlaceHolder->parent() != previousTabWidget) {
-    previousTabWidget->deleteLater();
-    QSplitter* splitter = qobject_cast<QSplitter*>(previousTabWidget->parentWidget());
+
+}
+
+void ToolWindowManager::deleteAllEmptyItems() {
+  foreach(QTabWidget* tabWidget, m_hash_tabbar_to_tabwidget) {
+    deleteEmptyItems(tabWidget);
+  }
+}
+
+void ToolWindowManager::deleteEmptyItems(QTabWidget *tabWidget) {
+  if (tabWidget->count() == 0) { // && m_rectPlaceHolder->parent() != previousTabWidget) {
+    tabWidget->deleteLater();
+    QSplitter* splitter = qobject_cast<QSplitter*>(tabWidget->parentWidget());
     while(splitter) {
-      if (splitter->count() == 1 && splitter != m_suggestedSplitter) {
+      if (splitter->count() == 1) { // && splitter != m_suggestedSplitter) {
         splitter->deleteLater();
         splitter = qobject_cast<QSplitter*>(splitter->parentWidget());
       } else {
@@ -339,6 +357,7 @@ void ToolWindowManager::execDrag(const QList<QWidget *> &toolWindows) {
     QWidget* widget = createDockItem(toolWindows, 0);
     widget->move(QCursor::pos());
     widget->show();
+    deleteAllEmptyItems();
   }
 }
 
@@ -386,12 +405,21 @@ QVariantMap ToolWindowManager::saveSplitterState(QSplitter *splitter) {
 }
 
 QSplitter *ToolWindowManager::restoreSplitterState(const QVariantMap &data) {
+  //qDebug() << "---";
+  //qDebug() << data;
+  if (data["items"].toList().isEmpty()) {
+    qWarning("empty splitter encountered");
+    return 0;
+  }
   QSplitter* splitter = createSplitter();
   foreach(QVariant itemData, data["items"].toList()) {
     QVariantMap itemValue = itemData.toMap();
     QString itemType = itemValue["type"].toString();
     if (itemType == "splitter") {
-      splitter->addWidget(restoreSplitterState(itemValue));
+      QSplitter* newSplitter = restoreSplitterState(itemValue);
+      if (newSplitter) {
+        splitter->addWidget(newSplitter);
+      }
     } else if (itemType == "centralWidget") {
       splitter->addWidget(m_centralWidgetContainer);
       m_centralWidgetContainer->show();
@@ -605,6 +633,7 @@ bool ToolWindowManager::tabBarEventFilter(QTabBar *tabBar, QEvent *event) {
     hidePlaceHolder();
   } else if (event->type() == QEvent::Drop) {
     QByteArray data = static_cast<QDropEvent*>(event)->mimeData()->data(m_dragMimeType);
+    //QWidget* window = tabWidget->topLevelWidget();
     foreach(QByteArray dataItem, data.split(';')) {
       bool ok = false;
       int toolWindowIndex = dataItem.toInt(&ok);
@@ -619,6 +648,8 @@ bool ToolWindowManager::tabBarEventFilter(QTabBar *tabBar, QEvent *event) {
     }
     hidePlaceHolder();
     static_cast<QDropEvent*>(event)->acceptProposedAction();
+    deleteAllEmptyItems();
+    //window->activateWindow();
   }
   return false;
 }
@@ -688,9 +719,12 @@ bool ToolWindowManager::topSplitterEventFilter(QSplitter *topSplitter, QEvent *e
     }
     m_suggestedSplitter->insertWidget(m_suggestedIndexInSplitter,
       createDockItem(toolWindows, m_suggestedSplitter->orientation()));
+    //QWidget* window = m_suggestedSplitter->topLevelWidget();
     addMissingSplitters(m_suggestedSplitter);
     hidePlaceHolder();
     static_cast<QDropEvent*>(event)->acceptProposedAction();
+    deleteAllEmptyItems();
+    //window->activateWindow();
   } else if (event->type() == QEvent::Close && topSplitter->topLevelWidget() != topLevelWidget()) {
     foreach(QTabWidget* tabWidget, topSplitter->findChildren<QTabWidget*>()) {
       while(tabWidget->count() > 0) {
