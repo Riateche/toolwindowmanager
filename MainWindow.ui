@@ -51,6 +51,8 @@
      <string>Options</string>
     </property>
     <addaction name="actionCentralWidget"/>
+    <addaction name="actionSaveState"/>
+    <addaction name="actionRestoreState"/>
    </widget>
    <addaction name="menuToolWindows"/>
    <addaction name="menuOptions"/>
@@ -65,6 +67,16 @@
    </property>
    <property name="text">
     <string>Central widget</string>
+   </property>
+  </action>
+  <action name="actionSaveState">
+   <property name="text">
+    <string>Save state</string>
+   </property>
+  </action>
+  <action name="actionRestoreState">
+   <property name="text">
+    <string>Restore state</string>
    </property>
   </action>
  </widget>

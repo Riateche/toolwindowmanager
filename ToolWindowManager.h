@@ -28,6 +28,10 @@ public:
   void setBorderSensitivity(int pixels);
   void setRubberBandLineWidth(int pixels);
   int rubberBandLineWidth() { return m_rubberBandLineWidth; }
+  QVariant saveState();
+  void restoreState(const QVariant& data);
+  QList<QWidget*> floatingWindows();
+
 
 signals:
   void toolWindowVisibilityChanged(QWidget* toolWindow, bool visible);
@@ -51,6 +55,7 @@ private:
   int m_dropCurrentSuggestionIndex;
   QPoint m_dropGlobalPos;
   QTimer m_dropSuggestionSwitchTimer;
+  QSplitter* m_rootSplitter;
 
   QHash<QTabBar*, QTabWidget*> m_hash_tabbar_to_tabwidget;
 
@@ -58,6 +63,9 @@ private:
   void hidePlaceHolder();
   void releaseToolWindow(QWidget* toolWindow);
   void execDrag(const QList<QWidget*>& toolWindows);
+
+  QVariantMap saveSplitterState(QSplitter* splitter);
+  QSplitter* restoreSplitterState(const QVariantMap& data);
 
 protected:
   virtual bool eventFilter(QObject *object, QEvent *event);
