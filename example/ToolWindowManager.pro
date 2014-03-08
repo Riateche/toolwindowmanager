@@ -12,11 +12,13 @@ TARGET = ToolWindowManager
 TEMPLATE = app
 
 
+INCLUDEPATH += ../src
+
 SOURCES += main.cpp\
-        MainWindow.cpp \
-    ToolWindowManager.cpp
+  MainWindow.cpp \
+  ../src/ToolWindowManager.cpp
 
 HEADERS  += MainWindow.h \
-    ToolWindowManager.h
+  ../src/ToolWindowManager.h
 
 FORMS    += MainWindow.ui

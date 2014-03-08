@@ -8,9 +8,20 @@
 #include <QTimer>
 #include <QRubberBand>
 
+/*!
+ * \brief The ToolWindowManager class provides Eclipse-like docking tool behavior.
+ *
+ * The ToolWindowManager class provides docking tool behavior  that is similar to
+ * behavior of tool windows in Visual Studio or Eclipse. User can arrange tool windows
+ * in tabs, dock it to any border, split with vertical and horizontal splitters,
+ * tabify them together and detach to floating windows.
+ */
 class ToolWindowManager : public QWidget {
   Q_OBJECT
 public:
+  /*!
+   * \brief Creates a manager with given parent.
+   */
   explicit ToolWindowManager(QWidget *parent = 0);
   virtual ~ToolWindowManager();
   void setCentralWidget(QWidget* widget);
