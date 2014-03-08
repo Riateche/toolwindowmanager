@@ -178,7 +178,6 @@ QVariant ToolWindowManager::saveState() {
     QSplitter* splitter = qobject_cast<QSplitter*>(window);
     if (!splitter) {
       qWarning("invalid floating window found");
-      qDebug() << window;
       continue;
     }
     floatingWindowsData << saveSplitterState(splitter);
@@ -341,7 +340,6 @@ QVariantMap ToolWindowManager::saveSplitterState(QSplitter *splitter) {
     QVariantMap itemValue;
     if (item == m_centralWidgetContainer) {
       itemValue["type"] = "centralWidget";
-      qDebug() << "saving central widget";
     } else {
       QTabWidget* tabWidget = qobject_cast<QTabWidget*>(item);
       if (tabWidget) {
@@ -380,7 +378,6 @@ QSplitter *ToolWindowManager::restoreSplitterState(const QVariantMap &data) {
     if (itemType == "splitter") {
       splitter->addWidget(restoreSplitterState(itemValue));
     } else if (itemType == "centralWidget") {
-      qDebug() << "restoring central widget";
       splitter->addWidget(m_centralWidgetContainer);
       m_centralWidgetContainer->show();
     } else if (itemType == "tabWidget") {
