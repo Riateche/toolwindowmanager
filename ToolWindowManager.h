@@ -17,11 +17,6 @@ public:
   QWidget* centralWidget() { return m_centralWidget; }
   void addToolWindow(QWidget* toolWindow);
 
-
-signals:
-
-public slots:
-
 private:
   QWidget* m_centralWidget;
   QWidget* m_centralWidgetContainer;
@@ -33,6 +28,7 @@ private:
   QRubberBand* m_linePlaceHolder;
   QSplitter* m_suggestedSplitter;
   int m_suggestedIndexInSplitter;
+  bool m_tabWidgetDragCanStart;
 
   int m_dropCurrentSuggestionIndex;
   QPoint m_dropGlobalPos;
@@ -40,11 +36,13 @@ private:
 
   QHash<QTabBar*, QTabWidget*> m_hash_tabbar_to_tabwidget;
 
-  QWidget* createDockItem(QWidget *toolWindow, Qt::Orientation parentOrientation);
+  QWidget* createDockItem(const QList<QWidget*>& toolWindows, Qt::Orientation parentOrientation);
   QTabWidget* createTabWidget();
 
   void hidePlaceHolder();
   void releaseToolWindow(QWidget* toolWindow);
+
+  void execDrag(const QList<QWidget*>& toolWindows);
 
 protected:
   virtual bool eventFilter(QObject *object, QEvent *event);
@@ -53,7 +51,7 @@ protected:
   virtual void dragLeaveEvent(QDragLeaveEvent *event);
   virtual void dropEvent(QDropEvent *event);
 
-  virtual QPixmap generateDragPixmap(QWidget *toolWindow);
+  virtual QPixmap generateDragPixmap(const QList<QWidget *> &toolWindows);
 
 private slots:
   void dropSuggestionSwitchTimeout();

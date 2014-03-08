@@ -23,7 +23,8 @@ ToolWindowManager::ToolWindowManager(QWidget *parent) :
   QWidget(parent)
 {
   m_borderSensitivity = 10;
-  m_dragMimeType = "application/x-tool-window-id";
+  m_dragMimeType = "application/x-tool-window-ids";
+  m_tabWidgetDragCanStart = false;
 
   m_centralWidget = 0;
   QSplitter* mainSplitter1 = new QSplitter();
@@ -90,11 +91,14 @@ void ToolWindowManager::addToolWindow(QWidget *toolWindow) {
   tabWidget->addTab(toolWindow, toolWindow->windowIcon(), toolWindow->windowTitle());
 }
 
-QWidget *ToolWindowManager::createDockItem(QWidget* toolWindow, Qt::Orientation parentOrientation) {
+QWidget *ToolWindowManager::createDockItem(const QList<QWidget *> &toolWindows,
+                                           Qt::Orientation parentOrientation) {
   QSplitter* splitter = new QSplitter();
   splitter->setOrientation(parentOrientation == Qt::Horizontal ? Qt::Vertical : Qt::Horizontal);
   QTabWidget* tabWidget = createTabWidget();
-  tabWidget->addTab(toolWindow, toolWindow->windowIcon(), toolWindow->windowTitle());
+  foreach(QWidget* toolWindow, toolWindows) {
+    tabWidget->addTab(toolWindow, toolWindow->windowIcon(), toolWindow->windowTitle());
+  }
   splitter->addWidget(tabWidget);
   return splitter;
 }
@@ -106,6 +110,7 @@ QTabWidget *ToolWindowManager::createTabWidget() {
   tabWidget->show();
   tabWidget->tabBar()->installEventFilter(this);
   tabWidget->tabBar()->setAcceptDrops(true);
+  tabWidget->installEventFilter(this);
   m_hash_tabbar_to_tabwidget[tabWidget->tabBar()] = tabWidget;
   return tabWidget;
   //todo: clear m_hash_tabbar_to_tabwidget when widgets are destroyed
@@ -146,9 +151,32 @@ void ToolWindowManager::releaseToolWindow(QWidget *toolWindow) {
   }
 }
 
-QPixmap ToolWindowManager::generateDragPixmap(QWidget* toolWindow) {
+void ToolWindowManager::execDrag(const QList<QWidget *> &toolWindows) {
+  QStringList ids;
+  foreach(QWidget* toolWindow, toolWindows) {
+    ids << QString::number(m_toolWindows.indexOf(toolWindow));
+  }
+  QDrag* drag = new QDrag(this);
+  QMimeData* mimeData = new QMimeData();
+  mimeData->setData(m_dragMimeType, ids.join(";").toLatin1());
+  drag->setMimeData(mimeData);
+  drag->setPixmap(generateDragPixmap(toolWindows));
+  Qt::DropAction dropAction = drag->exec(Qt::MoveAction);
+  if (dropAction == Qt::IgnoreAction) {
+    QTabWidget* newTabWidget = createTabWidget();
+    foreach(QWidget* toolWindow, toolWindows) {
+      releaseToolWindow(toolWindow);
+      newTabWidget->addTab(toolWindow, toolWindow->windowIcon(), toolWindow->windowTitle());
+    }
+    newTabWidget->move(QCursor::pos());
+  }
+}
+
+QPixmap ToolWindowManager::generateDragPixmap(const QList<QWidget *> &toolWindows) {
   QTabBar widget;
-  widget.addTab(toolWindow->windowIcon(), toolWindow->windowTitle());
+  foreach(QWidget* toolWindow, toolWindows) {
+    widget.addTab(toolWindow->windowIcon(), toolWindow->windowTitle());
+  }
   return widget.grab();
 }
 
@@ -258,20 +286,7 @@ bool ToolWindowManager::eventFilter(QObject *object, QEvent *event) {
                                                   static_cast<QMouseEvent*>(event)->localPos(),
                                                   Qt::LeftButton, Qt::LeftButton, 0);
       qApp->sendEvent(tabBar, releaseEvent);
-      QPixmap pixmap(16, 16);
-      pixmap.fill(Qt::red);
-      QDrag* drag = new QDrag(this);
-      QMimeData* mimeData = new QMimeData();
-      mimeData->setData(m_dragMimeType, QByteArray::number(m_toolWindows.indexOf(toolWindow)));
-      drag->setMimeData(mimeData);
-      drag->setPixmap(generateDragPixmap(toolWindow));
-      Qt::DropAction dropAction = drag->exec(Qt::MoveAction);
-      if (dropAction == Qt::IgnoreAction) {
-        releaseToolWindow(toolWindow);
-        QTabWidget* newTabWidget = createTabWidget();
-        newTabWidget->addTab(toolWindow, toolWindow->windowIcon(), toolWindow->windowTitle());
-        newTabWidget->move(QCursor::pos());
-      }
+      execDrag(QList<QWidget*>() << toolWindow);
     } else if (event->type() == QEvent::DragEnter) {
       if (static_cast<QDragEnterEvent*>(event)->mimeData()->formats().contains(m_dragMimeType)) {
         event->accept();
@@ -285,17 +300,44 @@ bool ToolWindowManager::eventFilter(QObject *object, QEvent *event) {
     } else if (event->type() == QEvent::DragLeave) {
       hidePlaceHolder();
     } else if (event->type() == QEvent::Drop) {
-      bool ok = false;
-      int toolWindowIndex = static_cast<QDropEvent*>(event)->mimeData()->data(m_dragMimeType).toInt(&ok);
-      if (!ok || toolWindowIndex < 0 || toolWindowIndex >= m_toolWindows.count()) {
-        qWarning("invalid index in mime data");
-        return false;
+      QByteArray data = static_cast<QDropEvent*>(event)->mimeData()->data(m_dragMimeType);
+      foreach(QByteArray dataItem, data.split(';')) {
+        bool ok = false;
+        int toolWindowIndex = dataItem.toInt(&ok);
+        if (!ok || toolWindowIndex < 0 || toolWindowIndex >= m_toolWindows.count()) {
+          qWarning("invalid index in mime data");
+          return false;
+        }
+        QWidget* toolWindow = m_toolWindows[toolWindowIndex];
+        releaseToolWindow(toolWindow);
+        tabWidget->addTab(toolWindow, toolWindow->windowIcon(), toolWindow->windowTitle());
       }
-      QWidget* toolWindow = m_toolWindows[toolWindowIndex];
-      releaseToolWindow(toolWindow);
       hidePlaceHolder();
-      tabWidget->addTab(toolWindow, toolWindow->windowIcon(), toolWindow->windowTitle());
       static_cast<QDropEvent*>(event)->acceptProposedAction();
+    }
+  }
+  QTabWidget* tabWidget = qobject_cast<QTabWidget*>(object);
+  if (tabWidget) {
+    if (event->type() == QEvent::MouseButtonPress && qApp->mouseButtons() & Qt::LeftButton) {
+      m_tabWidgetDragCanStart = true;
+    } else if (event->type() == QEvent::MouseButtonRelease) {
+      m_tabWidgetDragCanStart = false;
+    }
+    if (event->type() == QEvent::MouseMove &&
+        qApp->mouseButtons() & Qt::LeftButton &&
+        !tabWidget->rect().contains(tabWidget->mapFromGlobal(QCursor::pos())) &&
+        m_tabWidgetDragCanStart) {
+      m_tabWidgetDragCanStart = false;
+      QList<QWidget*> toolWindows;
+      for(int i = 0; i < tabWidget->count(); i++) {
+        QWidget* toolWindow = tabWidget->widget(i);
+        if (!m_toolWindows.contains(toolWindow)) {
+          qWarning("tab widget contains unmanaged widget");
+        } else {
+          toolWindows << toolWindow;
+        }
+      }
+      execDrag(toolWindows);
     }
   }
   return false;
@@ -334,17 +376,22 @@ void ToolWindowManager::dropEvent(QDropEvent *event) {
     qWarning("unexpected drop event");
     return;
   }
-  bool ok = false;
-  int toolWindowIndex = event->mimeData()->data(m_dragMimeType).toInt(&ok);
-  if (!ok || toolWindowIndex < 0 || toolWindowIndex >= m_toolWindows.count()) {
-    qWarning("invalid index in mime data");
-    return;
+  QByteArray data = event->mimeData()->data(m_dragMimeType);
+  QList<QWidget*> toolWindows;
+  foreach(QByteArray dataItem, data.split(';')) {
+    bool ok = false;
+    int toolWindowIndex = dataItem.toInt(&ok);
+    if (!ok || toolWindowIndex < 0 || toolWindowIndex >= m_toolWindows.count()) {
+      qWarning("invalid index in mime data");
+      return;
+    }
+    QWidget* toolWindow = m_toolWindows[toolWindowIndex];
+    releaseToolWindow(toolWindow);
+    toolWindows << toolWindow;
   }
-  QWidget* toolWindow = m_toolWindows[toolWindowIndex];
-  releaseToolWindow(toolWindow);
 
   m_suggestedSplitter->insertWidget(m_suggestedIndexInSplitter,
-                                    createDockItem(toolWindow, m_suggestedSplitter->orientation()));
+                                    createDockItem(toolWindows, m_suggestedSplitter->orientation()));
   hidePlaceHolder();
   event->acceptProposedAction();
 
