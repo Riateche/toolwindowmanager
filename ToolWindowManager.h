@@ -43,7 +43,6 @@ private:
   QWidget* createDockItem(QWidget *toolWindow, Qt::Orientation parentOrientation);
   QTabWidget* createTabWidget();
 
-  void deleteEmptyItems(QTabWidget* tabWidget);
   void hidePlaceHolder();
   void releaseToolWindow(QWidget* toolWindow);
 
