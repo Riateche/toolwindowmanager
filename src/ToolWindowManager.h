@@ -203,11 +203,12 @@ private:
 
   QHash<QTabBar*, QTabWidget*> m_hash_tabbar_to_tabwidget;
 
-  QWidget* createDockItem(const QList<QWidget*>& toolWindows, Qt::Orientations parentOrientation);
+  QSplitter *createDockItem(const QList<QWidget*>& toolWindows, Qt::Orientations parentOrientation);
   void hidePlaceHolder();
   void releaseToolWindow(QWidget* toolWindow);
   void deleteAllEmptyItems();
   void deleteEmptyItems(QTabWidget* tabWidget);
+  QWidget* wrapTopLevelSplitter(QSplitter* splitter);
   void execDrag(const QList<QWidget*>& toolWindows);
 
   QVariantMap saveSplitterState(QSplitter* splitter);
