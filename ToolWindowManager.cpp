@@ -22,7 +22,8 @@ T findClosestParent(QWidget* widget) {
 ToolWindowManager::ToolWindowManager(QWidget *parent) :
   QWidget(parent)
 {
-  m_borderSensitivity = 10;
+  m_lastUsedArea = 0;
+  m_borderSensitivity = 25;
   m_rubberBandLineWidth = 4;
   m_dragMimeType = "application/x-tool-window-ids";
   m_tabWidgetDragCanStart = false;
@@ -74,7 +75,7 @@ void ToolWindowManager::setCentralWidget(QWidget *widget) {
 
 }
 
-void ToolWindowManager::addToolWindow(QWidget *toolWindow) {
+void ToolWindowManager::addToolWindow(QWidget *toolWindow, DockArea dockArea) {
   if (!toolWindow) {
     qWarning("cannot add null widget");
     return;
@@ -84,24 +85,67 @@ void ToolWindowManager::addToolWindow(QWidget *toolWindow) {
     return;
   }
   m_toolWindows << toolWindow;
-  setToolWindowVisible(toolWindow, true);
+  toolWindow->hide();
+  toolWindow->setParent(0);
+  moveToolWindow(toolWindow, dockArea);
 }
 
-void ToolWindowManager::setToolWindowVisible(QWidget *toolWindow, bool visible) {
-  if (!m_toolWindows.contains(toolWindow)) {
-    qWarning("unknown tool window");
-    return;
-  }
-  if (visible == (toolWindow->parentWidget() != 0)) {
-    return;
-  }
-  if (visible) {
-    QWidget* widget = createDockItem(QList<QWidget*>() << toolWindow, 0);
-    widget->show();
-  } else {
+void ToolWindowManager::moveToolWindow(QWidget *toolWindow, ToolWindowManager::DockArea dockArea) {
+  if (toolWindow->parentWidget() != 0) {
     releaseToolWindow(toolWindow);
   }
-  emit toolWindowVisibilityChanged(toolWindow, visible);
+  if (dockArea == NoArea) {
+    emit toolWindowVisibilityChanged(toolWindow, false);
+    return;
+  }
+  if (m_rootSplitter->count() == 0) {
+    qWarning("unexpected empty splitter");
+  }
+  QTabWidget* tabWidget = 0;
+  QSplitter* parentSplitter = 0;
+  bool atEnd = false;
+  if (dockArea == LastUsedArea && !m_lastUsedArea) {
+    dockArea = LeftDockArea;
+  }
+  if (dockArea == LeftDockArea || dockArea == RightDockArea) {
+    atEnd = dockArea == RightDockArea;
+    parentSplitter = m_rootSplitter;
+  }
+  if (dockArea == TopDockArea || dockArea == BottomDockArea) {
+    atEnd = dockArea == BottomDockArea;
+    parentSplitter = qobject_cast<QSplitter*>(m_centralWidgetContainer->parentWidget());
+    if (parentSplitter && parentSplitter->orientation() != Qt::Vertical) {
+      parentSplitter = 0;
+    }
+    if (!parentSplitter) {
+      qWarning("failed to find vertical splitter at 2nd level");
+      return;
+    }
+  }
+  if (parentSplitter) {
+    int index = atEnd ? parentSplitter->count() - 1 : 0;
+    if (parentSplitter->count() > 0 &&
+        parentSplitter->widget(index) != m_centralWidgetContainer &&
+        (tabWidget = parentSplitter->widget(index)->findChild<QTabWidget*>())) {
+      //tabWidget = static_cast<QTabWidget*>(parentSplitter->widget(index));
+    } else {
+      QWidget* widget = createDockItem(QList<QWidget*>() << toolWindow, parentSplitter->orientation());
+      parentSplitter->insertWidget(atEnd ? parentSplitter->count() : 0, widget);
+    }
+  } else if (dockArea == LastUsedArea) {
+    tabWidget = m_lastUsedArea;
+  } else if (dockArea == NewFloatingArea) {
+    QWidget* widget = createDockItem(QList<QWidget*>() << toolWindow, 0);
+    widget->show();
+
+  } else {
+    qWarning("unknown area");
+  }
+  if (tabWidget) {
+    int newIndex = tabWidget->addTab(toolWindow, toolWindow->windowIcon(), toolWindow->windowTitle());
+    tabWidget->setCurrentIndex(newIndex);
+  }
+  emit toolWindowVisibilityChanged(toolWindow, true);
 }
 
 void ToolWindowManager::setSuggestionSwitchInterval(int msec) {
@@ -133,6 +177,7 @@ QVariant ToolWindowManager::saveState() {
     QSplitter* splitter = qobject_cast<QSplitter*>(window);
     if (!splitter) {
       qWarning("invalid floating window found");
+      qDebug() << window;
       continue;
     }
     floatingWindowsData << saveSplitterState(splitter);
@@ -174,9 +219,11 @@ void ToolWindowManager::restoreState(const QVariant &data) {
 QList<QWidget *> ToolWindowManager::floatingWindows() {
   QSet<QWidget*> result;
   foreach(QWidget* toolWindow, m_toolWindows) {
-    QWidget* window = toolWindow->topLevelWidget();
-    if (window != topLevelWidget()) {
-      result << window;
+    if (toolWindow->parentWidget() != 0) {
+      QWidget* window = toolWindow->topLevelWidget();
+      if (window != topLevelWidget()) {
+        result << window;
+      }
     }
   }
   return result.toList();
@@ -200,6 +247,7 @@ QWidget *ToolWindowManager::createDockItem(const QList<QWidget *> &toolWindows,
   QTabWidget* tabWidget = createTabWidget();
   foreach(QWidget* toolWindow, toolWindows) {
     tabWidget->addTab(toolWindow, toolWindow->windowIcon(), toolWindow->windowTitle());
+    m_lastUsedArea = tabWidget;
   }
   splitter->addWidget(tabWidget);
   return topSplitter;
@@ -212,7 +260,6 @@ QTabWidget *ToolWindowManager::createTabWidget() {
   tabWidget->setTabsClosable(true);
   connect(tabWidget, SIGNAL(tabCloseRequested(int)),
           this, SLOT(tabCloseRequested(int)));
-  tabWidget->show();
   tabWidget->tabBar()->installEventFilter(this);
   tabWidget->tabBar()->setAcceptDrops(true);
   connect(tabWidget->tabBar(), SIGNAL(destroyed(QObject*)),
@@ -243,8 +290,8 @@ void ToolWindowManager::releaseToolWindow(QWidget *toolWindow) {
     return;
   }
   previousTabWidget->removeTab(previousTabWidget->indexOf(toolWindow));
-  toolWindow->setParent(0);
   toolWindow->hide();
+  toolWindow->setParent(0);
   if (previousTabWidget->count() == 0 && m_rectPlaceHolder->parent() != previousTabWidget) {
     previousTabWidget->deleteLater();
     QSplitter* splitter = qobject_cast<QSplitter*>(previousTabWidget->parentWidget());
@@ -475,6 +522,10 @@ void ToolWindowManager::tabCloseRequested(int index) {
 }
 
 void ToolWindowManager::tabBarDestroyed(QObject *object) {
+  QTabWidget* deletedTabWidget = m_hash_tabbar_to_tabwidget[static_cast<QTabBar*>(object)];
+  if (deletedTabWidget == m_lastUsedArea) {
+    m_lastUsedArea = 0;
+  }
   m_hash_tabbar_to_tabwidget.remove(static_cast<QTabBar*>(object));
 }
 
@@ -537,6 +588,7 @@ bool ToolWindowManager::tabBarEventFilter(QTabBar *tabBar, QEvent *event) {
       QWidget* toolWindow = m_toolWindows[toolWindowIndex];
       releaseToolWindow(toolWindow);
       tabWidget->addTab(toolWindow, toolWindow->windowIcon(), toolWindow->windowTitle());
+      m_lastUsedArea = tabWidget;
     }
     hidePlaceHolder();
     static_cast<QDropEvent*>(event)->acceptProposedAction();

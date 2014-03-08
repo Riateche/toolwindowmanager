@@ -24,7 +24,8 @@ MainWindow::MainWindow(QWidget *parent) :
     action->setChecked(true);
     connect(action, SIGNAL(triggered(bool)), this, SLOT(toolWindowActionToggled(bool)));
     actions << action;
-    ui->toolWindowManager->addToolWindow(b1);
+    ui->toolWindowManager->addToolWindow(b1, i > 2 ? ToolWindowManager::RightDockArea :
+                                                     ToolWindowManager::LeftDockArea);
   }
   on_actionRestoreState_triggered();
 }
@@ -37,7 +38,9 @@ MainWindow::~MainWindow() {
 void MainWindow::toolWindowActionToggled(bool state) {
   int index = static_cast<QAction*>(sender())->data().toInt();
   QWidget* toolWindow = ui->toolWindowManager->toolWindows()[index];
-  ui->toolWindowManager->setToolWindowVisible(toolWindow, state);
+  ui->toolWindowManager->moveToolWindow(toolWindow, state ?
+                                          ToolWindowManager::LastUsedArea :
+                                          ToolWindowManager::NoArea);
 
 }
 
