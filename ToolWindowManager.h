@@ -36,6 +36,7 @@ private:
   QWidget* m_centralWidgetContainer;
   QList<QWidget*> m_toolWindows;
   int m_borderSensitivity;
+  int m_linePlaceHolderWidth;
   QString m_dragMimeType;
 
   QRubberBand* m_rectPlaceHolder;

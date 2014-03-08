@@ -23,6 +23,7 @@ ToolWindowManager::ToolWindowManager(QWidget *parent) :
   QWidget(parent)
 {
   m_borderSensitivity = 10;
+  m_linePlaceHolderWidth = 4;
   m_dragMimeType = "application/x-tool-window-ids";
   m_tabWidgetDragCanStart = false;
 
@@ -73,7 +74,9 @@ void ToolWindowManager::setCentralWidget(QWidget *widget) {
     m_centralWidget->deleteLater();
   }
   m_centralWidget = widget;
-  m_centralWidgetContainer->layout()->addWidget(widget);
+  if (widget) {
+    m_centralWidgetContainer->layout()->addWidget(widget);
+  }
 
 }
 
@@ -279,26 +282,26 @@ void ToolWindowManager::dropSuggestionSwitchTimeout() {
           if (m_suggestedIndexInSplitter == 0) {
             placeHolderGeometry.setLeft(0);
           } else if (m_suggestedIndexInSplitter == m_suggestedSplitter->count()) {
-            placeHolderGeometry.setLeft(splitter->width() - m_borderSensitivity);
+            placeHolderGeometry.setLeft(splitter->width() - m_linePlaceHolderWidth);
           } else {
             placeHolderGeometry.setLeft(
                   m_suggestedSplitter->widget(m_suggestedIndexInSplitter)->geometry().left() -
-                  m_borderSensitivity / 2);
+                  m_linePlaceHolderWidth / 2);
           }
-          placeHolderGeometry.setWidth(m_borderSensitivity);
+          placeHolderGeometry.setWidth(m_linePlaceHolderWidth);
         } else {
           placeHolderGeometry.setLeft(0);
           placeHolderGeometry.setRight(splitter->width());
           if (m_suggestedIndexInSplitter == 0) {
             placeHolderGeometry.setTop(0);
           } else if (m_suggestedIndexInSplitter == m_suggestedSplitter->count()) {
-            placeHolderGeometry.setTop(splitter->height() - m_borderSensitivity);
+            placeHolderGeometry.setTop(splitter->height() - m_linePlaceHolderWidth);
           } else {
             placeHolderGeometry.setTop(
                   m_suggestedSplitter->widget(m_suggestedIndexInSplitter)->geometry().top() -
-                  m_borderSensitivity / 2);
+                  m_linePlaceHolderWidth / 2);
           }
-          placeHolderGeometry.setHeight(m_borderSensitivity);
+          placeHolderGeometry.setHeight(m_linePlaceHolderWidth);
         }
         placeHolderGeometry.moveTopLeft(
               m_suggestedSplitter->mapToGlobal(placeHolderGeometry.topLeft()));
