@@ -63,6 +63,7 @@ protected:
 
 private slots:
   void dropSuggestionSwitchTimeout();
+  void tabCloseRequested(int index);
 
 };
 

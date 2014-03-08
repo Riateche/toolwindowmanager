@@ -127,6 +127,9 @@ QTabWidget *ToolWindowManager::createTabWidget() {
   QTabWidget* tabWidget = new QTabWidget();
   tabWidget->setWindowFlags(tabWidget->windowFlags() & Qt::Tool);
   tabWidget->setMovable(true);
+  tabWidget->setTabsClosable(true);
+  connect(tabWidget, SIGNAL(tabCloseRequested(int)),
+          this, SLOT(tabCloseRequested(int)));
   tabWidget->show();
   tabWidget->tabBar()->installEventFilter(this);
   tabWidget->tabBar()->setAcceptDrops(true);
@@ -286,6 +289,16 @@ void ToolWindowManager::dropSuggestionSwitchTimeout() {
   if (currentIndex == 0 && !foundPlace && m_suggestedSplitter) {
     hidePlaceHolder();
   }
+}
+
+void ToolWindowManager::tabCloseRequested(int index) {
+  QTabWidget* tabWidget = static_cast<QTabWidget*>(sender());
+  QWidget* toolWindow = tabWidget->widget(index);
+  if (!m_toolWindows.contains(toolWindow)) {
+    qWarning("unknown tab in tab widget");
+    return;
+  }
+  hideToolWindow(toolWindow);
 }
 
 bool ToolWindowManager::eventFilter(QObject *object, QEvent *event) {
