@@ -26,6 +26,8 @@ public:
   const QString& dragMimeType() { return m_dragMimeType; }
   int borderSensitivity() { return m_borderSensitivity; }
   void setBorderSensitivity(int pixels);
+  void setRubberBandLineWidth(int pixels);
+  int rubberBandLineWidth() { return m_rubberBandLineWidth; }
 
 signals:
   void toolWindowVisibilityChanged(QWidget* toolWindow, bool visible);
@@ -36,7 +38,7 @@ private:
   QWidget* m_centralWidgetContainer;
   QList<QWidget*> m_toolWindows;
   int m_borderSensitivity;
-  int m_linePlaceHolderWidth;
+  int m_rubberBandLineWidth;
   QString m_dragMimeType;
 
   QRubberBand* m_rectPlaceHolder;

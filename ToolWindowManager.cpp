@@ -23,7 +23,7 @@ ToolWindowManager::ToolWindowManager(QWidget *parent) :
   QWidget(parent)
 {
   m_borderSensitivity = 10;
-  m_linePlaceHolderWidth = 4;
+  m_rubberBandLineWidth = 4;
   m_dragMimeType = "application/x-tool-window-ids";
   m_tabWidgetDragCanStart = false;
 
@@ -125,6 +125,10 @@ void ToolWindowManager::setDragMimeType(const QString &mimeType) {
 
 void ToolWindowManager::setBorderSensitivity(int pixels) {
   m_borderSensitivity = pixels;
+}
+
+void ToolWindowManager::setRubberBandLineWidth(int pixels) {
+  m_rubberBandLineWidth = pixels;
 }
 
 QWidget *ToolWindowManager::createDockItem(const QList<QWidget *> &toolWindows,
@@ -283,26 +287,26 @@ void ToolWindowManager::dropSuggestionSwitchTimeout() {
           if (m_suggestedIndexInSplitter == 0) {
             placeHolderGeometry.setLeft(0);
           } else if (m_suggestedIndexInSplitter == m_suggestedSplitter->count()) {
-            placeHolderGeometry.setLeft(splitter->width() - m_linePlaceHolderWidth);
+            placeHolderGeometry.setLeft(splitter->width() - m_rubberBandLineWidth);
           } else {
             placeHolderGeometry.setLeft(
                   m_suggestedSplitter->widget(m_suggestedIndexInSplitter)->geometry().left() -
-                  m_linePlaceHolderWidth / 2);
+                  m_rubberBandLineWidth / 2);
           }
-          placeHolderGeometry.setWidth(m_linePlaceHolderWidth);
+          placeHolderGeometry.setWidth(m_rubberBandLineWidth);
         } else {
           placeHolderGeometry.setLeft(0);
           placeHolderGeometry.setRight(splitter->width());
           if (m_suggestedIndexInSplitter == 0) {
             placeHolderGeometry.setTop(0);
           } else if (m_suggestedIndexInSplitter == m_suggestedSplitter->count()) {
-            placeHolderGeometry.setTop(splitter->height() - m_linePlaceHolderWidth);
+            placeHolderGeometry.setTop(splitter->height() - m_rubberBandLineWidth);
           } else {
             placeHolderGeometry.setTop(
                   m_suggestedSplitter->widget(m_suggestedIndexInSplitter)->geometry().top() -
-                  m_linePlaceHolderWidth / 2);
+                  m_rubberBandLineWidth / 2);
           }
-          placeHolderGeometry.setHeight(m_linePlaceHolderWidth);
+          placeHolderGeometry.setHeight(m_rubberBandLineWidth);
         }
         placeHolderGeometry.moveTopLeft(
               m_suggestedSplitter->mapToGlobal(placeHolderGeometry.topLeft()));
