@@ -6,6 +6,7 @@
 #include <QTabWidget>
 #include <QTabBar>
 #include <QTimer>
+#include <QRubberBand>
 
 class ToolWindowManager : public QWidget {
   Q_OBJECT
@@ -26,8 +27,12 @@ private:
   QWidget* m_centralWidgetContainer;
   QList<QWidget*> m_toolWindows;
   int m_borderSensitivity;
-  QWidget* m_placeHolder;
   QString m_dragMimeType;
+
+  QRubberBand* m_rectPlaceHolder;
+  QRubberBand* m_linePlaceHolder;
+  QSplitter* m_suggestedSplitter;
+  int m_suggestedIndexInSplitter;
 
   int m_dropCurrentSuggestionIndex;
   QPoint m_dropGlobalPos;
