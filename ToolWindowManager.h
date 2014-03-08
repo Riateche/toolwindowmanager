@@ -37,6 +37,7 @@ private:
   QSplitter* m_suggestedSplitter;
   int m_suggestedIndexInSplitter;
   bool m_tabWidgetDragCanStart;
+  QWidget* m_dragParent;
 
   int m_dropCurrentSuggestionIndex;
   QPoint m_dropGlobalPos;
@@ -44,20 +45,17 @@ private:
 
   QHash<QTabBar*, QTabWidget*> m_hash_tabbar_to_tabwidget;
 
-  QWidget* createDockItem(const QList<QWidget*>& toolWindows, Qt::Orientation parentOrientation);
+  QWidget* createDockItem(const QList<QWidget*>& toolWindows, Qt::Orientations parentOrientation);
   QTabWidget* createTabWidget();
-
   void hidePlaceHolder();
   void releaseToolWindow(QWidget* toolWindow);
-
   void execDrag(const QList<QWidget*>& toolWindows);
 
 protected:
   virtual bool eventFilter(QObject *object, QEvent *event);
-  virtual void dragEnterEvent(QDragEnterEvent* event);
-  virtual void dragMoveEvent(QDragMoveEvent *event);
-  virtual void dragLeaveEvent(QDragLeaveEvent *event);
-  virtual void dropEvent(QDropEvent *event);
+  bool tabBarEventFilter(QTabBar* tabBar, QEvent* event);
+  bool tabWidgetEventFilter(QTabWidget* tabWidget, QEvent* event);
+  bool topSplitterEventFilter(QSplitter* topSplitter, QEvent* event);
 
   virtual QPixmap generateDragPixmap(const QList<QWidget *> &toolWindows);
 
