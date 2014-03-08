@@ -45,7 +45,7 @@ ToolWindowManager::ToolWindowManager(QWidget *parent) :
 
   connect(&m_dropSuggestionSwitchTimer, SIGNAL(timeout()),
           this, SLOT(dropSuggestionSwitchTimeout()));
-  m_dropSuggestionSwitchTimer.setInterval(1000); //todo: add setter for this interval
+  m_dropSuggestionSwitchTimer.setInterval(1000);
   m_dropCurrentSuggestionIndex = -1;
 
   m_rectPlaceHolder = new QRubberBand(QRubberBand::Rectangle, this);
@@ -107,6 +107,22 @@ void ToolWindowManager::setToolWindowVisible(QWidget *toolWindow, bool visible) 
   emit toolWindowVisibilityChanged(toolWindow, visible);
 }
 
+void ToolWindowManager::setSuggestionSwitchInterval(int msec) {
+  m_dropSuggestionSwitchTimer.setInterval(msec);
+}
+
+int ToolWindowManager::suggestionSwitchInterval() {
+  return m_dropSuggestionSwitchTimer.interval();
+}
+
+void ToolWindowManager::setDragMimeType(const QString &mimeType) {
+  m_dragMimeType = mimeType;
+}
+
+void ToolWindowManager::setBorderSensitivity(int pixels) {
+  m_borderSensitivity = pixels;
+}
+
 QWidget *ToolWindowManager::createDockItem(const QList<QWidget *> &toolWindows,
                                            Qt::Orientations parentOrientation) {
   QSplitter* splitter = new QSplitter();
@@ -140,10 +156,11 @@ QTabWidget *ToolWindowManager::createTabWidget() {
   tabWidget->show();
   tabWidget->tabBar()->installEventFilter(this);
   tabWidget->tabBar()->setAcceptDrops(true);
+  connect(tabWidget->tabBar(), SIGNAL(destroyed(QObject*)),
+          this, SLOT(tabBarDestroyed(QObject*)));
   tabWidget->installEventFilter(this);
   m_hash_tabbar_to_tabwidget[tabWidget->tabBar()] = tabWidget;
   return tabWidget;
-  //todo: clear m_hash_tabbar_to_tabwidget when widgets are destroyed
 
 }
 
@@ -312,6 +329,10 @@ void ToolWindowManager::tabCloseRequested(int index) {
     return;
   }
   hideToolWindow(toolWindow);
+}
+
+void ToolWindowManager::tabBarDestroyed(QObject *object) {
+  m_hash_tabbar_to_tabwidget.remove(static_cast<QTabBar*>(object));
 }
 
 bool ToolWindowManager::eventFilter(QObject *object, QEvent *event) {

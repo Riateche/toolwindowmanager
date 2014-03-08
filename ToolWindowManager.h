@@ -20,6 +20,12 @@ public:
   void setToolWindowVisible(QWidget* toolWindow, bool visible);
   void showToolWindow(QWidget* toolWindow) { setToolWindowVisible(toolWindow, true); }
   void hideToolWindow(QWidget* toolWindow) { setToolWindowVisible(toolWindow, false); }
+  void setSuggestionSwitchInterval(int msec);
+  int suggestionSwitchInterval();
+  void setDragMimeType(const QString& mimeType);
+  const QString& dragMimeType() { return m_dragMimeType; }
+  int borderSensitivity() { return m_borderSensitivity; }
+  void setBorderSensitivity(int pixels);
 
 signals:
   void toolWindowVisibilityChanged(QWidget* toolWindow, bool visible);
@@ -62,6 +68,7 @@ protected:
 private slots:
   void dropSuggestionSwitchTimeout();
   void tabCloseRequested(int index);
+  void tabBarDestroyed(QObject* object);
 
 };
 
