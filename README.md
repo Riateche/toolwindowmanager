@@ -7,4 +7,5 @@ This project implements docking tool behavior that is similar to tool windows me
 
 The magic is implemented in the ToolWindowManager class. Other files are provided just for an example of using it.
 
+[API documentation](http://htmlpreview.github.io/?https://github.com/Riateche/toolwindowmanager/blob/master/doc/class_tool_window_manager.html)
 
