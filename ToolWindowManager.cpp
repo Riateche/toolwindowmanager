@@ -131,6 +131,7 @@ void ToolWindowManager::moveToolWindow(QWidget *toolWindow, ToolWindowManager::D
     } else {
       QWidget* widget = createDockItem(QList<QWidget*>() << toolWindow, parentSplitter->orientation());
       parentSplitter->insertWidget(atEnd ? parentSplitter->count() : 0, widget);
+      addMissingSplitters(parentSplitter);
     }
   } else if (dockArea == LastUsedArea) {
     tabWidget = m_lastUsedArea;
@@ -411,6 +412,20 @@ QSplitter *ToolWindowManager::restoreSplitterState(const QVariantMap &data) {
   return splitter;
 }
 
+void ToolWindowManager::addMissingSplitters(QSplitter *splitter) {
+  if (splitter->count() < 2) { return; }
+  for(int i = 0; i < splitter->count(); i++) {
+    QSplitter* childSplitter = qobject_cast<QSplitter*>(splitter->widget(i));
+    if (!childSplitter || childSplitter->orientation() == splitter->orientation()) {
+      QSplitter* newSplitter = createSplitter();
+      newSplitter->setOrientation(splitter->orientation() == Qt::Horizontal ?
+                                    Qt::Vertical : Qt::Horizontal);
+      newSplitter->addWidget(splitter->widget(i));
+      splitter->insertWidget(i, newSplitter);
+    }
+  }
+}
+
 
 QPixmap ToolWindowManager::generateDragPixmap(const QList<QWidget *> &toolWindows) {
   QTabBar widget;
@@ -661,6 +676,7 @@ bool ToolWindowManager::topSplitterEventFilter(QSplitter *topSplitter, QEvent *e
     }
     m_suggestedSplitter->insertWidget(m_suggestedIndexInSplitter,
       createDockItem(toolWindows, m_suggestedSplitter->orientation()));
+    addMissingSplitters(m_suggestedSplitter);
     hidePlaceHolder();
     static_cast<QDropEvent*>(event)->acceptProposedAction();
   } else if (event->type() == QEvent::Close && topSplitter->topLevelWidget() != topLevelWidget()) {

@@ -82,6 +82,8 @@ private:
   QVariantMap saveSplitterState(QSplitter* splitter);
   QSplitter* restoreSplitterState(const QVariantMap& data);
 
+  void addMissingSplitters(QSplitter* splitter);
+
 protected:
   virtual bool eventFilter(QObject *object, QEvent *event);
   bool tabBarEventFilter(QTabBar* tabBar, QEvent* event);
