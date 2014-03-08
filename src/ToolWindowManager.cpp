@@ -91,6 +91,10 @@ void ToolWindowManager::addToolWindow(QWidget *toolWindow, DockArea dockArea) {
 }
 
 void ToolWindowManager::moveToolWindow(QWidget *toolWindow, ToolWindowManager::DockArea dockArea) {
+  if (!m_toolWindows.contains(toolWindow)) {
+    qWarning("unknown tool window");
+    return;
+  }
   if (toolWindow->parentWidget() != 0) {
     releaseToolWindow(toolWindow);
   }
@@ -147,6 +151,17 @@ void ToolWindowManager::moveToolWindow(QWidget *toolWindow, ToolWindowManager::D
     tabWidget->setCurrentIndex(newIndex);
   }
   emit toolWindowVisibilityChanged(toolWindow, true);
+}
+
+void ToolWindowManager::removeToolWindow(QWidget *toolWindow) {
+  if (!m_toolWindows.contains(toolWindow)) {
+    qWarning("unknown tool window");
+    return;
+  }
+  if (toolWindow->parentWidget() != 0) {
+    releaseToolWindow(toolWindow);
+  }
+  m_toolWindows.removeOne(toolWindow);
 }
 
 void ToolWindowManager::setSuggestionSwitchInterval(int msec) {

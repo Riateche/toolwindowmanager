@@ -93,6 +93,10 @@ virtual&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="c
 <tr class="memitem:a649554d8db19f1a7e9909c2795226721"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_tool_window_manager.html#a649554d8db19f1a7e9909c2795226721">moveToolWindow</a> (QWidget *toolWindow, <a class="el" href="class_tool_window_manager.html#a3e8fadc40e4b50b2b8f69b39ae1a01a2">DockArea</a> dockArea=<a class="el" href="class_tool_window_manager.html#a3e8fadc40e4b50b2b8f69b39ae1a01a2a43da8b8c68c2134253c1f96f3bb9f396">LeftDockArea</a>)</td></tr>
 <tr class="memdesc:a649554d8db19f1a7e9909c2795226721"><td class="mdescLeft">&#160;</td><td class="mdescRight">Moves <em>toolWindow</em> to the position specified by <em>dockArea</em>.  <a href="#a649554d8db19f1a7e9909c2795226721">More...</a><br/></td></tr>
 <tr class="separator:a649554d8db19f1a7e9909c2795226721"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5787bbe3c7575fc49f9d68c95fc756ed"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a5787bbe3c7575fc49f9d68c95fc756ed"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_tool_window_manager.html#a5787bbe3c7575fc49f9d68c95fc756ed">removeToolWindow</a> (QWidget *toolWindow)</td></tr>
+<tr class="memdesc:a5787bbe3c7575fc49f9d68c95fc756ed"><td class="mdescLeft">&#160;</td><td class="mdescRight">Removes <em>toolWindow</em> from the manager. <em>toolWindow</em> becomes a hidden top level widget. The ownership of <em>toolWindow</em> is returned to the caller. <br/></td></tr>
+<tr class="separator:a5787bbe3c7575fc49f9d68c95fc756ed"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad34dc2a42454a8a19c5113bbc47efeb1"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ad34dc2a42454a8a19c5113bbc47efeb1"></a>
 const QList&lt; QWidget * &gt; &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_tool_window_manager.html#ad34dc2a42454a8a19c5113bbc47efeb1">toolWindows</a> ()</td></tr>
 <tr class="memdesc:ad34dc2a42454a8a19c5113bbc47efeb1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns all tool window added to the manager. <br/></td></tr>
@@ -136,9 +140,9 @@ Properties</h2></td></tr>
 <tr class="memitem:a511794bc49a7c47f1410622d8fbc52d6"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_tool_window_manager.html#a511794bc49a7c47f1410622d8fbc52d6">suggestionSwitchInterval</a></td></tr>
 <tr class="memdesc:a511794bc49a7c47f1410622d8fbc52d6"><td class="mdescLeft">&#160;</td><td class="mdescRight">The delay between showing the next suggestion of drop location in milliseconds.  <a href="#a511794bc49a7c47f1410622d8fbc52d6">More...</a><br/></td></tr>
 <tr class="separator:a511794bc49a7c47f1410622d8fbc52d6"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a6f047abc808eb3ad4da5360c57f4a2a5"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_tool_window_manager.html#a6f047abc808eb3ad4da5360c57f4a2a5">dragMimeType</a></td></tr>
-<tr class="memdesc:a6f047abc808eb3ad4da5360c57f4a2a5"><td class="mdescLeft">&#160;</td><td class="mdescRight">The mime type used for dragding tool windows.  <a href="#a6f047abc808eb3ad4da5360c57f4a2a5">More...</a><br/></td></tr>
-<tr class="separator:a6f047abc808eb3ad4da5360c57f4a2a5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5ed4467676b9440548b0d1683ae82060"><td class="memItemLeft" align="right" valign="top">QString&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_tool_window_manager.html#a5ed4467676b9440548b0d1683ae82060">dragMimeType</a></td></tr>
+<tr class="memdesc:a5ed4467676b9440548b0d1683ae82060"><td class="mdescLeft">&#160;</td><td class="mdescRight">The mime type used for dragding tool windows.  <a href="#a5ed4467676b9440548b0d1683ae82060">More...</a><br/></td></tr>
+<tr class="separator:a5ed4467676b9440548b0d1683ae82060"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a8ddcb610439076d376a21e50ee229c9d"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_tool_window_manager.html#a8ddcb610439076d376a21e50ee229c9d">borderSensitivity</a></td></tr>
 <tr class="memdesc:a8ddcb610439076d376a21e50ee229c9d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Maximal distance in pixels between mouse position and area border that allows to display a suggestion.  <a href="#a8ddcb610439076d376a21e50ee229c9d">More...</a><br/></td></tr>
 <tr class="separator:a8ddcb610439076d376a21e50ee229c9d"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -344,7 +348,7 @@ Properties</h2></td></tr>
 
 </div>
 </div>
-<a class="anchor" id="a6f047abc808eb3ad4da5360c57f4a2a5"></a>
+<a class="anchor" id="a5ed4467676b9440548b0d1683ae82060"></a>
 <div class="memitem">
 <div class="memproto">
 <table class="mlabels">
@@ -352,7 +356,7 @@ Properties</h2></td></tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">int ToolWindowManager::dragMimeType</td>
+          <td class="memname">QString ToolWindowManager::dragMimeType</td>
         </tr>
       </table>
   </td>
@@ -420,7 +424,7 @@ Properties</h2></td></tr>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Sat Mar 8 2014 23:37:30 for ToolWindowManager by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Sat Mar 8 2014 23:53:30 for ToolWindowManager by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.4
 </small></address>

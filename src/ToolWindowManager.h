@@ -132,6 +132,12 @@ public:
    * \a toolWindow must be added to the manager prior to calling this function.
    */
   void moveToolWindow(QWidget* toolWindow, DockArea dockArea = LeftDockArea);
+
+  /*!
+   * \brief Removes \a toolWindow from the manager. \a toolWindow becomes a hidden
+   * top level widget. The ownership of \a toolWindow is returned to the caller.
+   */
+  void removeToolWindow(QWidget* toolWindow);
   /*!
    * \brief Returns all tool window added to the manager.
    */
