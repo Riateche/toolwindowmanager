@@ -7,8 +7,7 @@ namespace Ui {
 class MainWindow;
 }
 
-class MainWindow : public QMainWindow
-{
+class MainWindow : public QMainWindow {
   Q_OBJECT
 
 public:
@@ -17,6 +16,9 @@ public:
 
 private:
   Ui::MainWindow *ui;
+
+private slots:
+  void toolWindowActionToggled(bool state);
 };
 
 #endif // MAINWINDOW_H

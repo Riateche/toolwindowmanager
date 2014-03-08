@@ -56,11 +56,15 @@ ToolWindowManager::ToolWindowManager(QWidget *parent) :
 ToolWindowManager::~ToolWindowManager() {
   QSet<QTabWidget*> tabWidgets;
   foreach(QWidget* toolWindow, m_toolWindows) {
-    QTabWidget* tabWidget = findClosestParent<QTabWidget*>(toolWindow);
-    if (!tabWidget) {
-      qWarning("cannot find tab widget for tool window");
+    if (!toolWindow->parent()) {
+      delete toolWindow;
     } else {
-      tabWidgets << tabWidget;
+      QTabWidget* tabWidget = findClosestParent<QTabWidget*>(toolWindow);
+      if (!tabWidget) {
+        qWarning("cannot find tab widget for tool window");
+      } else {
+        tabWidgets << tabWidget;
+      }
     }
   }
   foreach(QTabWidget* tabWidget, tabWidgets) {
@@ -87,8 +91,24 @@ void ToolWindowManager::addToolWindow(QWidget *toolWindow) {
     return;
   }
   m_toolWindows << toolWindow;
-  QTabWidget* tabWidget = createTabWidget();
-  tabWidget->addTab(toolWindow, toolWindow->windowIcon(), toolWindow->windowTitle());
+  setToolWindowVisible(toolWindow, true);
+}
+
+void ToolWindowManager::setToolWindowVisible(QWidget *toolWindow, bool visible) {
+  if (!m_toolWindows.contains(toolWindow)) {
+    qWarning("unknown tool window");
+    return;
+  }
+  //qDebug() << "current" << toolWindow->isVisible() << "new" << visible;
+  if (visible == (toolWindow->parentWidget() != 0)) {
+    return;
+  }
+  if (visible) {
+    QTabWidget* tabWidget = createTabWidget();
+    tabWidget->addTab(toolWindow, toolWindow->windowIcon(), toolWindow->windowTitle());
+  } else {
+    releaseToolWindow(toolWindow);
+  }
 }
 
 QWidget *ToolWindowManager::createDockItem(const QList<QWidget *> &toolWindows,
@@ -137,6 +157,8 @@ void ToolWindowManager::releaseToolWindow(QWidget *toolWindow) {
     return;
   }
   previousTabWidget->removeTab(previousTabWidget->indexOf(toolWindow));
+  toolWindow->setParent(0);
+  toolWindow->hide();
   if (previousTabWidget->count() == 0 && m_rectPlaceHolder->parent() != previousTabWidget) {
     previousTabWidget->deleteLater();
     QSplitter* splitter = qobject_cast<QSplitter*>(previousTabWidget->parentWidget());

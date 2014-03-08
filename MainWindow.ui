@@ -41,6 +41,12 @@
      <height>20</height>
     </rect>
    </property>
+   <widget class="QMenu" name="menuToolWindows">
+    <property name="title">
+     <string>Tool windows</string>
+    </property>
+   </widget>
+   <addaction name="menuToolWindows"/>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
  </widget>

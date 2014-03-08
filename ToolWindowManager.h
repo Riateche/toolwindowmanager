@@ -16,6 +16,12 @@ public:
   void setCentralWidget(QWidget* widget);
   QWidget* centralWidget() { return m_centralWidget; }
   void addToolWindow(QWidget* toolWindow);
+  const QList<QWidget*>& toolWindows() { return m_toolWindows; }
+  void setToolWindowVisible(QWidget* toolWindow, bool visible);
+  void showToolWindow(QWidget* toolWindow) { setToolWindowVisible(toolWindow, true); }
+  void hideToolWindow(QWidget* toolWindow) { setToolWindowVisible(toolWindow, false); }
+
+
 
 private:
   QWidget* m_centralWidget;
