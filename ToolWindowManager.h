@@ -53,7 +53,6 @@ private:
   QHash<QTabBar*, QTabWidget*> m_hash_tabbar_to_tabwidget;
 
   QWidget* createDockItem(const QList<QWidget*>& toolWindows, Qt::Orientations parentOrientation);
-  QTabWidget* createTabWidget();
   void hidePlaceHolder();
   void releaseToolWindow(QWidget* toolWindow);
   void execDrag(const QList<QWidget*>& toolWindows);
@@ -63,6 +62,8 @@ protected:
   bool tabBarEventFilter(QTabBar* tabBar, QEvent* event);
   bool tabWidgetEventFilter(QTabWidget* tabWidget, QEvent* event);
   bool topSplitterEventFilter(QSplitter* topSplitter, QEvent* event);
+  virtual QSplitter* createSplitter();
+  virtual QTabWidget* createTabWidget();
 
   virtual QPixmap generateDragPixmap(const QList<QWidget *> &toolWindows);
 

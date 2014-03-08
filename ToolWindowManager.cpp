@@ -28,7 +28,7 @@ ToolWindowManager::ToolWindowManager(QWidget *parent) :
   m_tabWidgetDragCanStart = false;
 
   m_centralWidget = 0;
-  QSplitter* mainSplitter1 = new QSplitter();
+  QSplitter* mainSplitter1 = createSplitter();
   mainSplitter1->installEventFilter(this);
   mainSplitter1->setAcceptDrops(true);
   mainSplitter1->setOrientation(Qt::Horizontal);
@@ -36,7 +36,7 @@ ToolWindowManager::ToolWindowManager(QWidget *parent) :
   mainLayout->addWidget(mainSplitter1);
   mainLayout->setContentsMargins(0, 0, 0, 0);
 
-  QSplitter* mainSplitter2 = new QSplitter();
+  QSplitter* mainSplitter2 = createSplitter();
   mainSplitter2->setOrientation(Qt::Vertical);
   mainSplitter1->addWidget(mainSplitter2);
   m_centralWidgetContainer = new QWidget();
@@ -77,6 +77,7 @@ void ToolWindowManager::setCentralWidget(QWidget *widget) {
   if (widget) {
     m_centralWidgetContainer->layout()->addWidget(widget);
   }
+  //m_centralWidgetContainer->setFixedWidth(widget ? QWIDGETSIZE_MAX : m_borderSensitivity);
 
 }
 
@@ -128,10 +129,10 @@ void ToolWindowManager::setBorderSensitivity(int pixels) {
 
 QWidget *ToolWindowManager::createDockItem(const QList<QWidget *> &toolWindows,
                                            Qt::Orientations parentOrientation) {
-  QSplitter* splitter = new QSplitter();
+  QSplitter* splitter = createSplitter();
   QSplitter* topSplitter;
   if (parentOrientation == 0) {
-    topSplitter = new QSplitter();
+    topSplitter = createSplitter();
     topSplitter->setOrientation(Qt::Horizontal);
     splitter->setOrientation(Qt::Vertical);
     topSplitter->addWidget(splitter);
@@ -480,6 +481,12 @@ bool ToolWindowManager::topSplitterEventFilter(QSplitter *topSplitter, QEvent *e
     }
   }
   return false;
+}
+
+QSplitter *ToolWindowManager::createSplitter() {
+  QSplitter* splitter = new QSplitter();
+  splitter->setChildrenCollapsible(false);
+  return splitter;
 }
 
 

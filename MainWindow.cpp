@@ -44,3 +44,8 @@ void MainWindow::toolWindowVisibilityChanged(QWidget *toolWindow, bool visible) 
   actions[index]->blockSignals(false);
 
 }
+
+void MainWindow::on_actionCentralWidget_toggled(bool on) {
+  ui->toolWindowManager->setCentralWidget(on ? new QTextEdit() : 0);
+
+}

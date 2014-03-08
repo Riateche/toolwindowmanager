@@ -46,9 +46,27 @@
      <string>Tool windows</string>
     </property>
    </widget>
+   <widget class="QMenu" name="menuOptions">
+    <property name="title">
+     <string>Options</string>
+    </property>
+    <addaction name="actionCentralWidget"/>
+   </widget>
    <addaction name="menuToolWindows"/>
+   <addaction name="menuOptions"/>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
+  <action name="actionCentralWidget">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Central widget</string>
+   </property>
+  </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <customwidgets>

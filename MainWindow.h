@@ -21,6 +21,7 @@ private:
 private slots:
   void toolWindowActionToggled(bool state);
   void toolWindowVisibilityChanged(QWidget* toolWindow, bool visible);
+  void on_actionCentralWidget_toggled(bool arg1);
 };
 
 #endif // MAINWINDOW_H
