@@ -10,6 +10,8 @@ MainWindow::MainWindow(QWidget *parent) :
   ui->setupUi(this);
   setAttribute(Qt::WA_DeleteOnClose);
   ui->toolWindowManager->setCentralWidget(new QTextEdit());
+  connect(ui->toolWindowManager, SIGNAL(toolWindowVisibilityChanged(QWidget*,bool)),
+          this, SLOT(toolWindowVisibilityChanged(QWidget*,bool)));
 
   for(int i = 0; i < 6; i++) {
     QPushButton* b1 = new QPushButton(QString("tool%1").arg(i + 1));
@@ -19,6 +21,7 @@ MainWindow::MainWindow(QWidget *parent) :
     action->setCheckable(true);
     action->setChecked(true);
     connect(action, SIGNAL(triggered(bool)), this, SLOT(toolWindowActionToggled(bool)));
+    actions << action;
     ui->toolWindowManager->addToolWindow(b1);
   }
 }
@@ -31,5 +34,13 @@ void MainWindow::toolWindowActionToggled(bool state) {
   int index = static_cast<QAction*>(sender())->data().toInt();
   QWidget* toolWindow = ui->toolWindowManager->toolWindows()[index];
   ui->toolWindowManager->setToolWindowVisible(toolWindow, state);
+
+}
+
+void MainWindow::toolWindowVisibilityChanged(QWidget *toolWindow, bool visible) {
+  int index = ui->toolWindowManager->toolWindows().indexOf(toolWindow);
+  actions[index]->blockSignals(true);
+  actions[index]->setChecked(visible);
+  actions[index]->blockSignals(false);
 
 }

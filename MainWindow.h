@@ -16,9 +16,11 @@ public:
 
 private:
   Ui::MainWindow *ui;
+  QList<QAction*> actions;
 
 private slots:
   void toolWindowActionToggled(bool state);
+  void toolWindowVisibilityChanged(QWidget* toolWindow, bool visible);
 };
 
 #endif // MAINWINDOW_H

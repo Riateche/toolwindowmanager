@@ -21,6 +21,8 @@ public:
   void showToolWindow(QWidget* toolWindow) { setToolWindowVisible(toolWindow, true); }
   void hideToolWindow(QWidget* toolWindow) { setToolWindowVisible(toolWindow, false); }
 
+signals:
+  void toolWindowVisibilityChanged(QWidget* toolWindow, bool visible);
 
 
 private:

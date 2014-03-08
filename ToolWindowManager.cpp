@@ -99,7 +99,6 @@ void ToolWindowManager::setToolWindowVisible(QWidget *toolWindow, bool visible) 
     qWarning("unknown tool window");
     return;
   }
-  //qDebug() << "current" << toolWindow->isVisible() << "new" << visible;
   if (visible == (toolWindow->parentWidget() != 0)) {
     return;
   }
@@ -109,6 +108,7 @@ void ToolWindowManager::setToolWindowVisible(QWidget *toolWindow, bool visible) 
   } else {
     releaseToolWindow(toolWindow);
   }
+  emit toolWindowVisibilityChanged(toolWindow, visible);
 }
 
 QWidget *ToolWindowManager::createDockItem(const QList<QWidget *> &toolWindows,
@@ -344,8 +344,7 @@ bool ToolWindowManager::eventFilter(QObject *object, QEvent *event) {
       m_tabWidgetDragCanStart = true;
     } else if (event->type() == QEvent::MouseButtonRelease) {
       m_tabWidgetDragCanStart = false;
-    }
-    if (event->type() == QEvent::MouseMove &&
+    } else if (event->type() == QEvent::MouseMove &&
         qApp->mouseButtons() & Qt::LeftButton &&
         !tabWidget->rect().contains(tabWidget->mapFromGlobal(QCursor::pos())) &&
         m_tabWidgetDragCanStart) {
@@ -360,6 +359,11 @@ bool ToolWindowManager::eventFilter(QObject *object, QEvent *event) {
         }
       }
       execDrag(toolWindows);
+    } else if (event->type() == QEvent::Close) {
+      while(tabWidget->count() > 0) {
+        QWidget* toolWindow = tabWidget->widget(0);
+        hideToolWindow(toolWindow);
+      }
     }
   }
   return false;
