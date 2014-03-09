@@ -1,3 +1,27 @@
+/*
+ * The MIT License (MIT)
+ *
+ * Copyright (c) 2014 Pavel Strakhov
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 #include "ToolWindowManager.h"
 #include <QVBoxLayout>
 #include <QDebug>
@@ -283,12 +307,23 @@ QTabWidget *ToolWindowManager::createTabWidget() {
   tabWidget->setTabsClosable(true);
   connect(tabWidget, SIGNAL(tabCloseRequested(int)),
           this, SLOT(tabCloseRequested(int)));
-  tabWidget->tabBar()->installEventFilter(this);
-  tabWidget->tabBar()->setAcceptDrops(true);
-  connect(tabWidget->tabBar(), SIGNAL(destroyed(QObject*)),
-          this, SLOT(tabBarDestroyed(QObject*)));
   tabWidget->installEventFilter(this);
-  m_hash_tabbar_to_tabwidget[tabWidget->tabBar()] = tabWidget;
+
+  QTabBar* tabBar;
+#if QT_VERSION >= 0x050000 // Qt5
+  tabBar = tabWidget->tabBar();
+#else //Qt4
+  tabBar = tabWidget->findChild<QTabBar*>();
+  if (!tabBar) {
+    qWarning("failed to find tab bar");
+    return tabWidget;
+  }
+#endif
+  tabBar->installEventFilter(this);
+  tabBar->setAcceptDrops(true);
+  connect(tabBar, SIGNAL(destroyed(QObject*)),
+          this, SLOT(tabBarDestroyed(QObject*)));
+  m_hash_tabbar_to_tabwidget[tabBar] = tabWidget;
   return tabWidget;
 
 }
@@ -480,7 +515,11 @@ QPixmap ToolWindowManager::generateDragPixmap(const QList<QWidget *> &toolWindow
   foreach(QWidget* toolWindow, toolWindows) {
     widget.addTab(toolWindow->windowIcon(), toolWindow->windowTitle());
   }
+#if QT_VERSION >= 0x050000 // Qt5
   return widget.grab();
+#else //Qt4
+  return QPixmap::grabWidget(&widget);
+#endif
 }
 
 void ToolWindowManager::dropSuggestionSwitchTimeout() {
@@ -632,7 +671,7 @@ bool ToolWindowManager::tabBarEventFilter(QTabBar *tabBar, QEvent *event) {
       return false;
     }
     QMouseEvent* releaseEvent = new QMouseEvent(QEvent::MouseButtonRelease,
-                                                static_cast<QMouseEvent*>(event)->localPos(),
+                                                static_cast<QMouseEvent*>(event)->pos(),
                                                 Qt::LeftButton, Qt::LeftButton, 0);
     qApp->sendEvent(tabBar, releaseEvent);
     execDrag(QList<QWidget*>() << toolWindow);
