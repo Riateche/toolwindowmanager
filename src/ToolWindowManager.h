@@ -71,7 +71,7 @@ class ToolWindowManager : public QWidget {
    * \brief Maximal distance in pixels between mouse position and area border that allows
    * to display a suggestion.
    *
-   * Default value is 25.
+   * Default value is 12.
    *
    * Access functions: borderSensitivity, setBorderSensitivity.
    */
@@ -216,7 +216,7 @@ private:
 
   QRubberBand* m_rectPlaceHolder;
   QRubberBand* m_linePlaceHolder;
-  QSplitter* m_suggestedSplitter;
+  QWidget* m_suggestedReceiver;
   int m_suggestedIndexInSplitter;
   bool m_tabWidgetDragCanStart;
   QWidget* m_dragParent;
@@ -244,6 +244,7 @@ private:
   bool tabBarEventFilter(QTabBar* tabBar, QEvent* event);
   bool tabWidgetEventFilter(QTabWidget* tabWidget, QEvent* event);
   bool topSplitterEventFilter(QSplitter* topSplitter, QEvent* event);
+  void setupTopLevelSplitter(QSplitter* splitter);
 
 protected:
   /*!
