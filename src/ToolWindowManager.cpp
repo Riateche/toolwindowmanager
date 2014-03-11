@@ -81,9 +81,6 @@ ToolWindowManager::ToolWindowManager(QWidget *parent) :
 }
 
 ToolWindowManager::~ToolWindowManager() {
-  foreach(QWidget* window, floatingWindows()) {
-    delete window;
-  }
 }
 
 void ToolWindowManager::setCentralWidget(QWidget *widget) {
@@ -298,7 +295,7 @@ QSplitter *ToolWindowManager::createDockItem(const QList<QWidget *> &toolWindows
 
 QTabWidget *ToolWindowManager::createTabWidget() {
   QTabWidget* tabWidget = new QTabWidget();
-  tabWidget->setWindowFlags(tabWidget->windowFlags() | Qt::Tool);
+  tabWidget->setWindowFlags(tabWidget->windowFlags());
   tabWidget->setMovable(true);
   tabWidget->setTabsClosable(true);
   connect(tabWidget, SIGNAL(tabCloseRequested(int)),
@@ -374,7 +371,7 @@ void ToolWindowManager::deleteEmptyItems(QTabWidget *tabWidget) {
 }
 
 QWidget *ToolWindowManager::wrapTopLevelSplitter(QSplitter *splitter) {
-  QWidget* topLevelWidget = new QWidget();
+  QWidget* topLevelWidget = new QWidget(this, Qt::Tool);
   QVBoxLayout* layout = new QVBoxLayout(topLevelWidget);
   layout->setContentsMargins(0, 0, 0, 0);
   layout->addWidget(splitter);
