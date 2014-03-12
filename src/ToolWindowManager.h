@@ -96,29 +96,13 @@ public:
    * created by this widget are destroyed.
    */
   virtual ~ToolWindowManager();
-  /*!
-   * \brief Sets the given \a widget to be this manager's central widget.
-   *
-   * Central widget is displayed in the center of the manager. All docked tool windows are
-   * displayed to the left, right, top or bottom to it. Central widget itself cannot be moved
-   * by user. If the manager already had a central widget, previous central widget is destroyed.
-   * If \a widget is 0, the manager will have no central widget. The manager takes ownership of
-   * the central widget and will delete it upon destruction or when new central widget is set.
-   */
-  void setCentralWidget(QWidget* widget);
-  /*!
-   * \brief Returns the central widget.
-   *
-   * This function returns 0 if the central widget has not been set or has been set to 0.
-   */
-  QWidget* centralWidget() { return m_centralWidget; }
 
   /*!
    * \brief The DockArea enum is used to determine new position of the tool window.
    */
   enum DockArea {
-    /*! Use an existing area to the left of the central widget.
-     *  Creates new area to the left of the central widget if there isn't one yet.
+    /*! Use an existing area in the left side of the manager.
+     *  Creates new area if there isn't one yet.
      */
     LeftDockArea,
     /*! Similar to LeftDockArea. */
@@ -127,6 +111,8 @@ public:
     TopDockArea,
     /*! Similar to LeftDockArea. */
     BottomDockArea,
+    /*! Similar to LeftDockArea. */
+    CentralDockArea,
     /*! Use the area that has been used last time for adding a tool window.
      * Calling ToolWindowManager::addToolWindow, ToolWindowManager::moveToolWindow and
      * dragging tool windows with mouse will affect later behavior of this option.
@@ -207,27 +193,35 @@ signals:
   void toolWindowVisibilityChanged(QWidget* toolWindow, bool visible);
 
 private:
-  QWidget* m_centralWidget;
-  QWidget* m_centralWidgetContainer;
-  QList<QWidget*> m_toolWindows;
+  QList<QWidget*> m_toolWindows; // all added tool windows
   int m_borderSensitivity;
   int m_rubberBandLineWidth;
   QString m_dragMimeType;
 
-  QRubberBand* m_rectPlaceHolder;
+  QRubberBand* m_rectPlaceHolder; // placeholder objects used for displaying drop suggestions
   QRubberBand* m_linePlaceHolder;
-  QWidget* m_suggestedReceiver;
-  int m_suggestedIndexInSplitter;
-  bool m_tabWidgetDragCanStart;
-  QWidget* m_dragParent;
+  QWidget* m_suggestedReceiver; //splitter or tab widget that will receive the tool window if user
+                                //dropped it now; 0 if there is currently no suggesion
+  int m_suggestedIndexInSplitter; // position for dropping in suggested splitter
+  bool m_tabWidgetDragCanStart; // indicates that user has started mouse movement on QTabWidget
+                                // that can be considered as dragging it if the cursor will leave
+                                // its area
+  QSplitter* m_dragParent; // the widget that currently receives drag events; it's always
+                           // the most top level splitter in the window (excluding parent widgets of
+                           // the manager itself)
+  QTabWidget* m_emptySpacer; // the widget that is added to m_subRootSplitter when there is no
+                             // other items in it, to prevent collapsing parent widths to null size;
+                             // 0, if there is no need in empty spacer.
+  int m_dropCurrentSuggestionIndex; // index of currently displayed drop suggestion
+                                    // (e.g. always 0 if there is only one possible drop location)
+  QPoint m_dropGlobalPos; // mouse global position in the last accepted drag event
+  QTimer m_dropSuggestionSwitchTimer; // used for switching drop suggestions
+  QSplitter* m_rootSplitter; // most top level splitter of the manager (always horizontal)
+  QSplitter* m_subRootSplitter; // second most top level splitter of the manager  (always vertical)
+  QTabWidget* m_lastUsedArea; // last widget used for adding tool windows, or 0 if there isn't one
 
-  int m_dropCurrentSuggestionIndex;
-  QPoint m_dropGlobalPos;
-  QTimer m_dropSuggestionSwitchTimer;
-  QSplitter* m_rootSplitter;
-  QTabWidget* m_lastUsedArea;
-
-  QHash<QTabBar*, QTabWidget*> m_hash_tabbar_to_tabwidget;
+  QHash<QTabBar*, QTabWidget*> m_hash_tabbar_to_tabwidget; // all tab widgets managed by the manager
+                                                           // and their respective tab bars
 
   QSplitter *createDockItem(const QList<QWidget*>& toolWindows, Qt::Orientations parentOrientation);
   void hidePlaceHolder();
@@ -245,6 +239,7 @@ private:
   bool tabWidgetEventFilter(QTabWidget* tabWidget, QEvent* event);
   bool topSplitterEventFilter(QSplitter* topSplitter, QEvent* event);
   void setupTopLevelSplitter(QSplitter* splitter);
+  void updateEmptySpacer();
 
 protected:
   /*!

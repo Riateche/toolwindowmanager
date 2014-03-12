@@ -34,7 +34,6 @@ MainWindow::MainWindow(QWidget *parent) :
 {
   ui->setupUi(this);
   setAttribute(Qt::WA_DeleteOnClose);
-  ui->toolWindowManager->setCentralWidget(new QTextEdit());
   connect(ui->toolWindowManager, SIGNAL(toolWindowVisibilityChanged(QWidget*,bool)),
           this, SLOT(toolWindowVisibilityChanged(QWidget*,bool)));
 
@@ -73,12 +72,6 @@ void MainWindow::toolWindowVisibilityChanged(QWidget *toolWindow, bool visible) 
   actions[index]->blockSignals(true);
   actions[index]->setChecked(visible);
   actions[index]->blockSignals(false);
-
-}
-
-void MainWindow::on_actionCentralWidget_toggled(bool on) {
-  ui->toolWindowManager->setCentralWidget(on ? new QTextEdit() : 0);
-
 }
 
 void MainWindow::on_actionSaveState_triggered() {

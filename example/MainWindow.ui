@@ -38,7 +38,7 @@
      <x>0</x>
      <y>0</y>
      <width>400</width>
-     <height>20</height>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuToolWindows">
@@ -50,7 +50,6 @@
     <property name="title">
      <string>Options</string>
     </property>
-    <addaction name="actionCentralWidget"/>
     <addaction name="actionSaveState"/>
     <addaction name="actionRestoreState"/>
    </widget>
@@ -58,17 +57,6 @@
    <addaction name="menuOptions"/>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
-  <action name="actionCentralWidget">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="checked">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>Central widget</string>
-   </property>
-  </action>
   <action name="actionSaveState">
    <property name="text">
     <string>Save state</string>

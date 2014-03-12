@@ -45,7 +45,6 @@ private:
 private slots:
   void toolWindowActionToggled(bool state);
   void toolWindowVisibilityChanged(QWidget* toolWindow, bool visible);
-  void on_actionCentralWidget_toggled(bool arg1);
   void on_actionSaveState_triggered();
   void on_actionRestoreState_triggered();
 };
