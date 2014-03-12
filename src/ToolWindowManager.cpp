@@ -239,9 +239,20 @@ void ToolWindowManager::restoreState(const QVariant &data) {
     m_rootSplitter->setOrientation(Qt::Horizontal);
   }
   if (!m_subRootSplitter) {
-    m_subRootSplitter = new QSplitter();
-    m_subRootSplitter->setOrientation(Qt::Vertical);
-    m_rootSplitter->insertWidget(m_rootSplitter->count() / 2, m_subRootSplitter);
+    QList<QSplitter*> candidates;
+    for(int i = 0; i < m_rootSplitter->count(); i++) {
+      QSplitter* candidate = qobject_cast<QSplitter*>(m_rootSplitter->widget(i));
+      if (candidate && candidate->orientation() == Qt::Vertical) {
+        candidates << candidate;
+      }
+    }
+    if (!candidates.isEmpty()) {
+      m_subRootSplitter = candidates[candidates.count() / 2];
+    } else {
+      m_subRootSplitter = new QSplitter();
+      m_subRootSplitter->setOrientation(Qt::Vertical);
+      m_rootSplitter->insertWidget(m_rootSplitter->count() / 2, m_subRootSplitter);
+    }
   }
   setupTopLevelSplitter(m_rootSplitter);
   layout()->addWidget(m_rootSplitter);
@@ -627,9 +638,9 @@ void ToolWindowManager::dropSuggestionSwitchTimeout() {
         totalFound++;
         if (currentIndex == m_dropCurrentSuggestionIndex) {
           m_suggestedReceiver = tabWidget;
-          QRect rect = tabWidget->rect();
-          rect.moveTopLeft(tabWidget->mapTo(topLevelWidget, rect.topLeft()));
-          m_rectPlaceHolder->setGeometry(rect);
+          QRect placeHolderGeometry = tabWidget->rect();
+          placeHolderGeometry.moveTopLeft(tabWidget->mapTo(topLevelWidget, placeHolderGeometry.topLeft()));
+          m_rectPlaceHolder->setGeometry(placeHolderGeometry);
           m_rectPlaceHolder->setParent(topLevelWidget);
           m_rectPlaceHolder->show();
           m_linePlaceHolder->hide();
@@ -722,7 +733,9 @@ bool ToolWindowManager::tabBarEventFilter(QTabBar *tabBar, QEvent *event) {
 }
 
 bool ToolWindowManager::tabWidgetEventFilter(QTabWidget *tabWidget, QEvent *event) {
-  if (event->type() == QEvent::MouseButtonPress && qApp->mouseButtons() & Qt::LeftButton) {
+  if (event->type() == QEvent::MouseButtonPress &&
+      qApp->mouseButtons() & Qt::LeftButton &&
+      tabWidget != m_emptySpacer) {
     m_tabWidgetDragCanStart = true;
   } else if (event->type() == QEvent::MouseButtonRelease) {
     m_tabWidgetDragCanStart = false;
