@@ -618,11 +618,11 @@ void ToolWindowManager::dropSuggestionSwitchTimeout() {
     }
   }
 
-  if (currentIndex > 0 && !foundPlace) {
+  if (totalFound > 0 && !foundPlace) {
     m_dropCurrentSuggestionIndex = -1;
     dropSuggestionSwitchTimeout();
   }
-  if (currentIndex == 0 && !foundPlace) {
+  if (totalFound == 0 && !foundPlace) {
     hidePlaceHolder();
   }
 }
