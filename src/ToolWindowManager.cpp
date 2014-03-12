@@ -236,6 +236,7 @@ void ToolWindowManager::restoreState(const QVariant &data) {
   m_rootSplitter = restoreSplitterState(dataMap["rootSplitter"].toMap());
   if (!m_rootSplitter) {
     m_rootSplitter = createSplitter();
+    m_rootSplitter->setOrientation(Qt::Horizontal);
   }
   if (!m_subRootSplitter) {
     m_subRootSplitter = new QSplitter();
@@ -453,7 +454,7 @@ QVariantMap ToolWindowManager::saveSplitterState(QSplitter *splitter) {
 }
 
 QSplitter *ToolWindowManager::restoreSplitterState(const QVariantMap &data) {
-  if (data["items"].toList().isEmpty()) {
+  if (data["items"].toList().isEmpty() && !data["subroot"].toBool()) {
     qWarning("empty splitter encountered");
     return 0;
   }
@@ -492,6 +493,10 @@ QSplitter *ToolWindowManager::restoreSplitterState(const QVariantMap &data) {
     } else {
       qWarning("unknown item type");
     }
+  }
+  if (splitter->count() == 0) {
+    delete splitter;
+    return 0;
   }
   splitter->restoreState(data["state"].toByteArray());
   if (data["subroot"].toBool()) {
@@ -680,11 +685,9 @@ bool ToolWindowManager::eventFilter(QObject *object, QEvent *event) {
     return topSplitterEventFilter(topSplitter, event);
   }
   if (event->type() == QEvent::Close) {
-    qDebug() << "closeevent" << object;
     foreach(QTabWidget* tabWidget, object->findChildren<QTabWidget*>()) {
       while(tabWidget->count() > 0) {
         QWidget* toolWindow = tabWidget->widget(0);
-        qDebug() << "closing tool window" << toolWindow;
         hideToolWindow(toolWindow);
       }
     }
