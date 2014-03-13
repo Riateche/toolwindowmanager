@@ -56,7 +56,8 @@ Public Types</h2></td></tr>
 <a class="el" href="class_tool_window_manager.html#a3e8fadc40e4b50b2b8f69b39ae1a01a2aebfab525eec07e3bf6c292ef02e2fb7e">TopDockArea</a>, 
 <a class="el" href="class_tool_window_manager.html#a3e8fadc40e4b50b2b8f69b39ae1a01a2a56791de50bbfe5da434b3d4e50824861">BottomDockArea</a>, 
 <br/>
-&#160;&#160;<a class="el" href="class_tool_window_manager.html#a3e8fadc40e4b50b2b8f69b39ae1a01a2a9086cbab6ae87e672ee008cec1ba88eb">LastUsedArea</a>, 
+&#160;&#160;<a class="el" href="class_tool_window_manager.html#a3e8fadc40e4b50b2b8f69b39ae1a01a2a0f4d8810dbc90d2fd34929b83c68647e">CentralDockArea</a>, 
+<a class="el" href="class_tool_window_manager.html#a3e8fadc40e4b50b2b8f69b39ae1a01a2a9086cbab6ae87e672ee008cec1ba88eb">LastUsedArea</a>, 
 <a class="el" href="class_tool_window_manager.html#a3e8fadc40e4b50b2b8f69b39ae1a01a2a541f134c0434cb20666538ffbfc07dcf">NewFloatingArea</a>, 
 <a class="el" href="class_tool_window_manager.html#a3e8fadc40e4b50b2b8f69b39ae1a01a2ac4fdd1a0eff32969358c1eaf3dad8c1c">NoArea</a>
 <br/>
@@ -81,12 +82,6 @@ Public Member Functions</h2></td></tr>
 virtual&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_tool_window_manager.html#afd481641fef6f9a2f3ec7c4a0e0dbf67">~ToolWindowManager</a> ()</td></tr>
 <tr class="memdesc:afd481641fef6f9a2f3ec7c4a0e0dbf67"><td class="mdescLeft">&#160;</td><td class="mdescRight">Destroys the widget. Additionally all tool windows and all floating windows created by this widget are destroyed. <br/></td></tr>
 <tr class="separator:afd481641fef6f9a2f3ec7c4a0e0dbf67"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a13d237018bc61b95b8115a84d98d8f73"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_tool_window_manager.html#a13d237018bc61b95b8115a84d98d8f73">setCentralWidget</a> (QWidget *widget)</td></tr>
-<tr class="memdesc:a13d237018bc61b95b8115a84d98d8f73"><td class="mdescLeft">&#160;</td><td class="mdescRight">Sets the given <em>widget</em> to be this manager's central widget.  <a href="#a13d237018bc61b95b8115a84d98d8f73">More...</a><br/></td></tr>
-<tr class="separator:a13d237018bc61b95b8115a84d98d8f73"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ab44b208bd48e4b3ad48669b269d98c29"><td class="memItemLeft" align="right" valign="top">QWidget *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_tool_window_manager.html#ab44b208bd48e4b3ad48669b269d98c29">centralWidget</a> ()</td></tr>
-<tr class="memdesc:ab44b208bd48e4b3ad48669b269d98c29"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the central widget.  <a href="#ab44b208bd48e4b3ad48669b269d98c29">More...</a><br/></td></tr>
-<tr class="separator:ab44b208bd48e4b3ad48669b269d98c29"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a60b48474078fa814bd1a06f192bc2c03"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_tool_window_manager.html#a60b48474078fa814bd1a06f192bc2c03">addToolWindow</a> (QWidget *toolWindow, <a class="el" href="class_tool_window_manager.html#a3e8fadc40e4b50b2b8f69b39ae1a01a2">DockArea</a> dockArea=<a class="el" href="class_tool_window_manager.html#a3e8fadc40e4b50b2b8f69b39ae1a01a2a43da8b8c68c2134253c1f96f3bb9f396">LeftDockArea</a>)</td></tr>
 <tr class="memdesc:a60b48474078fa814bd1a06f192bc2c03"><td class="mdescLeft">&#160;</td><td class="mdescRight">Adds <em>toolWindow</em> to the manager and moves it to the position specified by <em>dockArea</em>. The manager takes ownership of the tool window and will delete it upon destruction.  <a href="#a60b48474078fa814bd1a06f192bc2c03">More...</a><br/></td></tr>
 <tr class="separator:a60b48474078fa814bd1a06f192bc2c03"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -168,7 +163,7 @@ Properties</h2></td></tr>
 <p>The DockArea enum is used to determine new position of the tool window. </p>
 <table class="fieldtable">
 <tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><em><a class="anchor" id="a3e8fadc40e4b50b2b8f69b39ae1a01a2a43da8b8c68c2134253c1f96f3bb9f396"></a>LeftDockArea</em>&nbsp;</td><td class="fielddoc">
-<p>Use an existing area to the left of the central widget. Creates new area to the left of the central widget if there isn't one yet. </p>
+<p>Use an existing area in the left side of the manager. Creates new area if there isn't one yet. </p>
 </td></tr>
 <tr><td class="fieldname"><em><a class="anchor" id="a3e8fadc40e4b50b2b8f69b39ae1a01a2a564b296ad22203d86f6c8004135fa1f1"></a>RightDockArea</em>&nbsp;</td><td class="fielddoc">
 <p>Similar to LeftDockArea. </p>
@@ -177,6 +172,9 @@ Properties</h2></td></tr>
 <p>Similar to LeftDockArea. </p>
 </td></tr>
 <tr><td class="fieldname"><em><a class="anchor" id="a3e8fadc40e4b50b2b8f69b39ae1a01a2a56791de50bbfe5da434b3d4e50824861"></a>BottomDockArea</em>&nbsp;</td><td class="fielddoc">
+<p>Similar to LeftDockArea. </p>
+</td></tr>
+<tr><td class="fieldname"><em><a class="anchor" id="a3e8fadc40e4b50b2b8f69b39ae1a01a2a0f4d8810dbc90d2fd34929b83c68647e"></a>CentralDockArea</em>&nbsp;</td><td class="fielddoc">
 <p>Similar to LeftDockArea. </p>
 </td></tr>
 <tr><td class="fieldname"><em><a class="anchor" id="a3e8fadc40e4b50b2b8f69b39ae1a01a2a9086cbab6ae87e672ee008cec1ba88eb"></a>LastUsedArea</em>&nbsp;</td><td class="fielddoc">
@@ -220,32 +218,6 @@ Properties</h2></td></tr>
 <p>Adds <em>toolWindow</em> to the manager and moves it to the position specified by <em>dockArea</em>. The manager takes ownership of the tool window and will delete it upon destruction. </p>
 <p>toolWindow-&gt;windowIcon() and toolWindow-&gt;windowTitle() will be used as the icon and title of the tab that represents the tool window.</p>
 <p>If you intend to use <a class="el" href="class_tool_window_manager.html#a3700d486690f8bc2e82613d94d35333d" title="saveState ">ToolWindowManager::saveState</a> and <a class="el" href="class_tool_window_manager.html#a80e0854bb7573637224e7c981d38da7b" title="restoreState ">ToolWindowManager::restoreState</a> functions, you must set toolWindow-&gt;objectName() to a non-empty unique string. </p>
-
-</div>
-</div>
-<a class="anchor" id="ab44b208bd48e4b3ad48669b269d98c29"></a>
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">QWidget* ToolWindowManager::centralWidget </td>
-          <td>(</td>
-          <td class="paramname">)</td><td></td>
-          <td></td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-<p>Returns the central widget. </p>
-<p>This function returns 0 if the central widget has not been set or has been set to 0. </p>
 
 </div>
 </div>
@@ -304,25 +276,6 @@ Properties</h2></td></tr>
 
 </div>
 </div>
-<a class="anchor" id="a13d237018bc61b95b8115a84d98d8f73"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">void ToolWindowManager::setCentralWidget </td>
-          <td>(</td>
-          <td class="paramtype">QWidget *&#160;</td>
-          <td class="paramname"><em>widget</em>)</td><td></td>
-          <td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Sets the given <em>widget</em> to be this manager's central widget. </p>
-<p>Central widget is displayed in the center of the manager. All docked tool windows are displayed to the left, right, top or bottom to it. Central widget itself cannot be moved by user. If the manager already had a central widget, previous central widget is destroyed. If <em>widget</em> is 0, the manager will have no central widget. The manager takes ownership of the central widget and will delete it upon destruction or when new central widget is set. </p>
-
-</div>
-</div>
 <h2 class="groupheader">Property Documentation</h2>
 <a class="anchor" id="a8ddcb610439076d376a21e50ee229c9d"></a>
 <div class="memitem">
@@ -343,7 +296,7 @@ Properties</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Maximal distance in pixels between mouse position and area border that allows to display a suggestion. </p>
-<p>Default value is 25.</p>
+<p>Default value is 12.</p>
 <p>Access functions: borderSensitivity, setBorderSensitivity. </p>
 
 </div>
@@ -424,7 +377,7 @@ Properties</h2></td></tr>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Sat Mar 8 2014 23:53:30 for ToolWindowManager by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Thu Mar 13 2014 14:18:33 for ToolWindowManager by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.4
 </small></address>
