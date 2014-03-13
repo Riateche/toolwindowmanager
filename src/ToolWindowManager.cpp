@@ -137,7 +137,7 @@ void ToolWindowManager::moveToolWindow(QWidget *toolWindow, ToolWindowManager::D
   }
   if (parentSplitter) {
     int index = atEnd ? parentSplitter->count() - 1 : atCenter ? parentSplitter->count() / 2 : 0;
-    if (parentSplitter->count() > 0) {
+    if (parentSplitter->count() > (atEnd ? 1 : 0)) {
       QWidget* widget = parentSplitter->widget(index);
       if (qobject_cast<QTabWidget*>(widget)) {
         tabWidget = static_cast<QTabWidget*>(widget);

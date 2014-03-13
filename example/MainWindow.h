@@ -47,6 +47,7 @@ private slots:
   void toolWindowVisibilityChanged(QWidget* toolWindow, bool visible);
   void on_actionSaveState_triggered();
   void on_actionRestoreState_triggered();
+  void on_actionClearState_triggered();
 };
 
 #endif // MAINWINDOW_H

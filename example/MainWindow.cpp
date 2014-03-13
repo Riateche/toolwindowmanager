@@ -54,7 +54,6 @@ MainWindow::MainWindow(QWidget *parent) :
 }
 
 MainWindow::~MainWindow() {
-  on_actionSaveState_triggered();
   delete ui;
 }
 
@@ -84,4 +83,11 @@ void MainWindow::on_actionRestoreState_triggered() {
   QSettings settings;
   restoreGeometry(settings.value("geometry").toByteArray());
   ui->toolWindowManager->restoreState(settings.value("toolWindowManagerState"));
+}
+
+void MainWindow::on_actionClearState_triggered() {
+  QSettings settings;
+  settings.remove("geometry");
+  settings.remove("toolWindowManagerState");
+  QApplication::quit();
 }

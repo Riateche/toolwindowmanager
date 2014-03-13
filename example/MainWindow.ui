@@ -38,7 +38,7 @@
      <x>0</x>
      <y>0</y>
      <width>400</width>
-     <height>21</height>
+     <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuToolWindows">
@@ -48,10 +48,11 @@
    </widget>
    <widget class="QMenu" name="menuOptions">
     <property name="title">
-     <string>Options</string>
+     <string>Storage</string>
     </property>
     <addaction name="actionSaveState"/>
     <addaction name="actionRestoreState"/>
+    <addaction name="actionClearState"/>
    </widget>
    <addaction name="menuToolWindows"/>
    <addaction name="menuOptions"/>
@@ -65,6 +66,11 @@
   <action name="actionRestoreState">
    <property name="text">
     <string>Restore state</string>
+   </property>
+  </action>
+  <action name="actionClearState">
+   <property name="text">
+    <string>Clear state and exit</string>
    </property>
   </action>
  </widget>
