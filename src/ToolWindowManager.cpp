@@ -48,12 +48,12 @@ ToolWindowManager::ToolWindowManager(QWidget *parent) :
 {
   m_lastUsedArea = 0;
   m_borderSensitivity = 12;
-  m_rubberBandLineWidth = 4;
   m_dragMimeType = "application/x-tool-window-ids";
   m_tabWidgetDragCanStart = false;
   m_emptySpacer = 0;
   m_dragParent = 0;
   m_rootSplitter = createSplitter();
+  m_rubberBandLineWidth = m_rootSplitter->handleWidth();
   setupTopLevelSplitter(m_rootSplitter);
   m_rootSplitter->setOrientation(Qt::Horizontal);
   QVBoxLayout* mainLayout = new QVBoxLayout(this);
@@ -599,6 +599,9 @@ void ToolWindowManager::dropSuggestionSwitchTimeout() {
             placeHolderGeometry.setLeft(
                   splitter->widget(m_suggestedIndexInSplitter)->geometry().left() -
                   m_rubberBandLineWidth / 2);
+            if (m_suggestedIndexInSplitter > 0) {
+               placeHolderGeometry.setLeft(placeHolderGeometry.left() - m_rubberBandLineWidth / 2);
+            }
           }
           placeHolderGeometry.setWidth(m_rubberBandLineWidth);
         } else {
