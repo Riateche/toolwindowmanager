@@ -368,12 +368,16 @@ void ToolWindowManager::deleteAllEmptyItems() {
 void ToolWindowManager::deleteEmptyItems(QTabWidget *tabWidget) {
   if (tabWidget == m_emptySpacer) { return; }
   if (tabWidget->count() == 0) {
-    tabWidget->deleteLater();
+    tabWidget->hide();
+    tabWidget->setParent(0);
+    // can't deleteLater immediately (strange MacOS)
+    QTimer::singleShot(1000, tabWidget, SLOT(deleteLater()));
     QSplitter* splitter = qobject_cast<QSplitter*>(tabWidget->parentWidget());
     while(splitter) {
       if (splitter->count() == 1 &&
           splitter != m_rootSplitter &&
           splitter != m_subRootSplitter) {
+        splitter->hide();
         splitter->deleteLater();
         if (splitter->parentWidget() == splitter->topLevelWidget() &&
             splitter->parentWidget() != this) {
@@ -855,5 +859,6 @@ QSplitter *ToolWindowManager::createSplitter() {
   splitter->setChildrenCollapsible(false);
   return splitter;
 }
+
 
 
