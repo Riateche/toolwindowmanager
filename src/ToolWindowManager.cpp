@@ -384,6 +384,7 @@ void ToolWindowManager::execDrag(const QList<QWidget *> &toolWindows) {
   m_detachTarget->installEventFilter(this);
   m_detachTarget->show();
   activateWindow();
+  topLevelWidget()->raise();
   QDrag* drag = new QDrag(this);
   QMimeData* mimeData = new QMimeData();
   mimeData->setData(m_dragMimeType, ids.join(";").toLatin1());
