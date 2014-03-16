@@ -12,6 +12,7 @@ ToolWindowManagerWrapper::ToolWindowManagerWrapper(ToolWindowManager *manager) :
 {
   setAcceptDrops(true);
   setWindowFlags(windowFlags() | Qt::Tool);
+  setWindowTitle(" ");
 
   QVBoxLayout* mainLayout = new QVBoxLayout(this);
   mainLayout->setContentsMargins(0, 0, 0, 0);
