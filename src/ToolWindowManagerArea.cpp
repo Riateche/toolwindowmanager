@@ -10,6 +10,7 @@ ToolWindowManagerArea::ToolWindowManagerArea(ToolWindowManager *manager, QWidget
   m_dragCanStart = false;
   setMovable(true);
   setTabsClosable(true);
+  setDocumentMode(true);
   tabBar()->installEventFilter(this);
   m_manager->m_areas << this;
 }
