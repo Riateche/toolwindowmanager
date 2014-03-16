@@ -16,9 +16,13 @@ INCLUDEPATH += ../src
 
 SOURCES += main.cpp\
   MainWindow.cpp \
-  ../src/ToolWindowManager.cpp
+  ../src/ToolWindowManager.cpp \
+    ../src/ToolWindowManagerArea.cpp \
+    ../src/ToolWindowManagerWrapper.cpp
 
 HEADERS  += MainWindow.h \
-  ../src/ToolWindowManager.h
+  ../src/ToolWindowManager.h \
+    ../src/ToolWindowManagerArea.h \
+    ../src/ToolWindowManagerWrapper.h
 
 FORMS    += MainWindow.ui

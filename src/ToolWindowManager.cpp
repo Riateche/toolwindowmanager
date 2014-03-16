@@ -23,6 +23,8 @@
  *
  */
 #include "ToolWindowManager.h"
+#include "ToolWindowManagerArea.h"
+#include "ToolWindowManagerWrapper.h"
 #include <QVBoxLayout>
 #include <QDebug>
 #include <QEvent>
@@ -46,126 +48,154 @@ T findClosestParent(QWidget* widget) {
 ToolWindowManager::ToolWindowManager(QWidget *parent) :
   QWidget(parent)
 {
-  m_lastUsedArea = 0;
   m_borderSensitivity = 12;
   m_dragMimeType = "application/x-tool-window-ids";
-  m_tabWidgetDragCanStart = false;
-  m_emptySpacer = 0;
-  m_dragParent = 0;
-  m_rootSplitter = createSplitter();
-  m_rubberBandLineWidth = m_rootSplitter->handleWidth();
-  setupTopLevelSplitter(m_rootSplitter);
-  m_rootSplitter->setOrientation(Qt::Horizontal);
+  QSplitter* testSplitter = new QSplitter();
+  m_rubberBandLineWidth = testSplitter->handleWidth();
+  delete testSplitter;
   QVBoxLayout* mainLayout = new QVBoxLayout(this);
-  mainLayout->addWidget(m_rootSplitter);
   mainLayout->setContentsMargins(0, 0, 0, 0);
-
-  m_subRootSplitter = createSplitter();
-  m_subRootSplitter->setOrientation(Qt::Vertical);
-  m_rootSplitter->addWidget(m_subRootSplitter);
-
+  ToolWindowManagerWrapper* wrapper = new ToolWindowManagerWrapper(this);
+  wrapper->setWindowFlags(wrapper->windowFlags() & ~Qt::Tool);
+  mainLayout->addWidget(wrapper);
   connect(&m_dropSuggestionSwitchTimer, SIGNAL(timeout()),
           this, SLOT(dropSuggestionSwitchTimeout()));
   m_dropSuggestionSwitchTimer.setInterval(1000);
-  m_dropCurrentSuggestionIndex = -1;
+  m_dropCurrentSuggestionIndex = 0;
 
   m_rectPlaceHolder = new QRubberBand(QRubberBand::Rectangle, this);
   m_linePlaceHolder = new QRubberBand(QRubberBand::Line, this);
-  m_suggestedReceiver = 0;
-  m_suggestedIndexInSplitter = -1;
-
-  updateEmptySpacer();
-
 }
 
 ToolWindowManager::~ToolWindowManager() {
+  while(!m_areas.isEmpty()) {
+    delete m_areas.first();
+  }
+  while(!m_wrappers.isEmpty()) {
+    delete m_wrappers.first();
+  }
 }
 
-void ToolWindowManager::addToolWindow(QWidget *toolWindow, DockArea dockArea) {
-  if (!toolWindow) {
-    qWarning("cannot add null widget");
-    return;
-  }
-  if (m_toolWindows.contains(toolWindow)) {
-    qWarning("this tool window has already been added");
-    return;
-  }
-  m_toolWindows << toolWindow;
-  toolWindow->hide();
-  toolWindow->setParent(0);
-  moveToolWindow(toolWindow, dockArea);
+void ToolWindowManager::addToolWindow(QWidget *toolWindow, const AreaReference &area) {
+  addToolWindows(QList<QWidget*>() << toolWindow, area);
 }
 
-void ToolWindowManager::moveToolWindow(QWidget *toolWindow, ToolWindowManager::DockArea dockArea) {
-  if (!m_toolWindows.contains(toolWindow)) {
-    qWarning("unknown tool window");
-    return;
+void ToolWindowManager::addToolWindows(QList<QWidget *> toolWindows, const ToolWindowManager::AreaReference &area) {
+  foreach(QWidget* toolWindow, toolWindows) {
+    if (!toolWindow) {
+      qWarning("cannot add null widget");
+      continue;
+    }
+    if (m_toolWindows.contains(toolWindow)) {
+      qWarning("this tool window has already been added");
+      continue;
+    }
+    toolWindow->hide();
+    toolWindow->setParent(0);
+    m_toolWindows << toolWindow;
   }
-  if (toolWindow->parentWidget() != 0) {
-    releaseToolWindow(toolWindow);
-  }
-  if (dockArea == NoArea) {
-    deleteAllEmptyItems();
-    emit toolWindowVisibilityChanged(toolWindow, false);
-    return;
-  }
-  if (m_rootSplitter->count() == 0) {
-    qWarning("unexpected empty splitter");
-  }
-  QTabWidget* tabWidget = 0;
-  QSplitter* parentSplitter = 0;
-  bool atEnd = false;
-  bool atCenter = false;
-  if (dockArea == LastUsedArea && !m_lastUsedArea) {
-    dockArea = LeftDockArea;
-  }
-  if (dockArea == LeftDockArea || dockArea == RightDockArea) {
-    atEnd = dockArea == RightDockArea;
-    parentSplitter = m_rootSplitter;
-  }
-  if (dockArea == TopDockArea || dockArea == BottomDockArea) {
-    atEnd = dockArea == BottomDockArea;
-    parentSplitter = m_subRootSplitter;
-  }
-  if (dockArea == CentralDockArea) {
-    if (m_emptySpacer) {
-      tabWidget = m_emptySpacer;
-    } else {
-      atCenter = true;
-      parentSplitter = m_subRootSplitter;
+  moveToolWindows(toolWindows, area);
+}
+
+ToolWindowManagerArea *ToolWindowManager::areaOf(QWidget *toolWindow) {
+  return findClosestParent<ToolWindowManagerArea*>(toolWindow);
+}
+
+void ToolWindowManager::moveToolWindow(QWidget *toolWindow, AreaReference area) {
+  moveToolWindows(QList<QWidget*>() << toolWindow, area);
+}
+
+void ToolWindowManager::moveToolWindows(QList<QWidget *> toolWindows, ToolWindowManager::AreaReference area) {
+  foreach(QWidget* toolWindow, toolWindows) {
+    if (!m_toolWindows.contains(toolWindow)) {
+      qWarning("unknown tool window");
+      return;
+    }
+    if (toolWindow->parentWidget() != 0) {
+      releaseToolWindow(toolWindow);
     }
   }
-  if (parentSplitter) {
-    int index = atEnd ? parentSplitter->count() - 1 : atCenter ? parentSplitter->count() / 2 : 0;
-    if (parentSplitter->count() > (atEnd ? 1 : 0)) {
-      QWidget* widget = parentSplitter->widget(index);
-      if (qobject_cast<QTabWidget*>(widget)) {
-        tabWidget = static_cast<QTabWidget*>(widget);
+  if (area.type() == LastUsedArea && !m_lastUsedArea) {
+    ToolWindowManagerArea* foundArea = findChild<ToolWindowManagerArea*>();
+    if (foundArea) {
+      area = AreaReference(AddTo, foundArea);
+    } else {
+      area = EmptySpace;
+    }
+  }
+
+  if (area.type() == NoArea) {
+    //do nothing
+  } else if (area.type() == NewFloatingArea) {
+    ToolWindowManagerArea* area = createArea();
+    area->addToolWindows(toolWindows);
+    ToolWindowManagerWrapper* wrapper = new ToolWindowManagerWrapper(this);
+    wrapper->layout()->addWidget(area);
+    wrapper->show();
+  } else if (area.type() == AddTo) {
+    area.area()->addToolWindows(toolWindows);
+  } else if (area.type() == LeftOf || area.type() == RightOf ||
+             area.type() == TopOf || area.type() == BottomOf) {
+    QSplitter* parentSplitter = qobject_cast<QSplitter*>(area.widget()->parentWidget());
+    ToolWindowManagerWrapper* wrapper = qobject_cast<ToolWindowManagerWrapper*>(area.widget()->parentWidget());
+    if (!parentSplitter && !wrapper) {
+      qWarning("unknown parent type");
+      return;
+    }
+    bool useParentSplitter = false;
+    int indexInParentSplitter = 0;
+    if (parentSplitter) {
+      indexInParentSplitter = parentSplitter->indexOf(area.widget());
+      if (parentSplitter->orientation() == Qt::Vertical) {
+        useParentSplitter = area.type() == TopOf || area.type() == BottomOf;
       } else {
-        tabWidget = widget->findChild<QTabWidget*>();
+        useParentSplitter = area.type() == LeftOf || area.type() == RightOf;
       }
     }
-    if (!tabWidget) {
-      QWidget* widget = createDockItem(QList<QWidget*>() << toolWindow, parentSplitter->orientation());
-      int newIndex = atEnd ? parentSplitter->count() : atCenter ? parentSplitter->count() / 2 : 0;
-      parentSplitter->insertWidget(newIndex, widget);
-      addMissingSplitters(parentSplitter);
+    if (useParentSplitter) {
+      if (area.type() == BottomOf || area.type() == RightOf) {
+        indexInParentSplitter++;
+      }
+      ToolWindowManagerArea* newArea = createArea();
+      newArea->addToolWindows(toolWindows);
+      parentSplitter->insertWidget(indexInParentSplitter, newArea);
+    } else {
+      area.widget()->hide();
+      area.widget()->setParent(0);
+      QSplitter* splitter = createSplitter();
+      if (area.type() == TopOf || area.type() == BottomOf) {
+        splitter->setOrientation(Qt::Vertical);
+      } else {
+        splitter->setOrientation(Qt::Horizontal);
+      }
+      splitter->addWidget(area.widget());
+      area.widget()->show();
+      ToolWindowManagerArea* newArea = createArea();
+      if (area.type() == TopOf || area.type() == LeftOf) {
+        splitter->insertWidget(0, newArea);
+      } else {
+        splitter->addWidget(newArea);
+      }
+      if (parentSplitter) {
+        parentSplitter->insertWidget(indexInParentSplitter, splitter);
+      } else {
+        wrapper->layout()->addWidget(splitter);
+      }
+      newArea->addToolWindows(toolWindows);
     }
-  } else if (dockArea == LastUsedArea) {
-    tabWidget = m_lastUsedArea;
-  } else if (dockArea == NewFloatingArea) {
-    QSplitter* splitter = createDockItem(QList<QWidget*>() << toolWindow, 0);
-    wrapTopLevelSplitter(splitter)->show();
-
+  } else if (area.type() == EmptySpace) {
+    ToolWindowManagerArea* newArea = createArea();
+    findChild<ToolWindowManagerWrapper*>("", Qt::FindDirectChildrenOnly)->layout()->addWidget(newArea);
+    newArea->addToolWindows(toolWindows);
+  } else if (area.type() == LastUsedArea) {
+    m_lastUsedArea->addToolWindows(toolWindows);
   } else {
-    qWarning("unknown area");
-  }
-  if (tabWidget) {
-    int newIndex = tabWidget->addTab(toolWindow, toolWindow->windowIcon(), toolWindow->windowTitle());
-    tabWidget->setCurrentIndex(newIndex);
+    qWarning("invalid type");
   }
   deleteAllEmptyItems();
-  emit toolWindowVisibilityChanged(toolWindow, true);
+  foreach(QWidget* toolWindow, toolWindows) {
+    emit toolWindowVisibilityChanged(toolWindow, toolWindow->parent() != 0);
+  }
 }
 
 void ToolWindowManager::removeToolWindow(QWidget *toolWindow) {
@@ -173,11 +203,8 @@ void ToolWindowManager::removeToolWindow(QWidget *toolWindow) {
     qWarning("unknown tool window");
     return;
   }
-  if (toolWindow->parentWidget() != 0) {
-    releaseToolWindow(toolWindow);
-  }
+  moveToolWindow(toolWindow, NoArea);
   m_toolWindows.removeOne(toolWindow);
-  deleteAllEmptyItems();
 }
 
 void ToolWindowManager::setSuggestionSwitchInterval(int msec) {
@@ -203,15 +230,16 @@ void ToolWindowManager::setRubberBandLineWidth(int pixels) {
 QVariant ToolWindowManager::saveState() {
   QVariantMap result;
   result["toolWindowManagerStateFormat"] = 1;
-  result["rootSplitter"] = saveSplitterState(m_rootSplitter);
+  ToolWindowManagerWrapper* mainWrapper = findChild<ToolWindowManagerWrapper*>();
+  if (!mainWrapper) {
+    qWarning("can't find main wrapper");
+    return QVariant();
+  }
+  result["mainWrapper"] = mainWrapper->saveState();
   QVariantList floatingWindowsData;
-  foreach(QWidget* window, floatingWindows()) {
-    QSplitter* splitter = window->findChild<QSplitter*>();
-    if (!splitter) {
-      qWarning("invalid floating window found");
-      continue;
-    }
-    floatingWindowsData << saveSplitterState(splitter);
+  foreach(ToolWindowManagerWrapper* wrapper, m_wrappers) {
+    if (!wrapper->isWindow()) { continue; }
+    floatingWindowsData << wrapper->saveState();
   }
   result["floatingWindows"] = floatingWindowsData;
   return result;
@@ -224,46 +252,17 @@ void ToolWindowManager::restoreState(const QVariant &data) {
     qWarning("state format is not recognized");
     return;
   }
-  foreach(QWidget* toolWindow, m_toolWindows) {
-    if (toolWindow->parentWidget() != 0) {
-      releaseToolWindow(toolWindow);
-    }
+  moveToolWindows(m_toolWindows, NoArea);
+  ToolWindowManagerWrapper* mainWrapper = findChild<ToolWindowManagerWrapper*>();
+  if (!mainWrapper) {
+    qWarning("can't find main wrapper");
+    return;
   }
-  deleteAllEmptyItems();
-  m_subRootSplitter = 0;
-  m_emptySpacer = 0;
-  delete m_rootSplitter;
-  m_rootSplitter = restoreSplitterState(dataMap["rootSplitter"].toMap());
-  if (!m_rootSplitter) {
-    m_rootSplitter = createSplitter();
-    m_rootSplitter->setOrientation(Qt::Horizontal);
-  }
-  if (!m_subRootSplitter) {
-    QList<QSplitter*> candidates;
-    for(int i = 0; i < m_rootSplitter->count(); i++) {
-      QSplitter* candidate = qobject_cast<QSplitter*>(m_rootSplitter->widget(i));
-      if (candidate && candidate->orientation() == Qt::Vertical) {
-        candidates << candidate;
-      }
-    }
-    if (!candidates.isEmpty()) {
-      m_subRootSplitter = candidates[candidates.count() / 2];
-    } else {
-      m_subRootSplitter = new QSplitter();
-      m_subRootSplitter->setOrientation(Qt::Vertical);
-      m_rootSplitter->insertWidget(m_rootSplitter->count() / 2, m_subRootSplitter);
-    }
-  }
-  setupTopLevelSplitter(m_rootSplitter);
-  layout()->addWidget(m_rootSplitter);
+  mainWrapper->restoreState(dataMap["mainWrapper"].toMap());
   foreach(QVariant windowData, dataMap["floatingWindows"].toList()) {
-    QSplitter* splitter = restoreSplitterState(windowData.toMap());
-    if (splitter) {
-      setupTopLevelSplitter(splitter);
-      QWidget* topLevelWidget = wrapTopLevelSplitter(splitter);
-      topLevelWidget->restoreGeometry(windowData.toMap()["geometry"].toByteArray());
-      topLevelWidget->show();
-    }
+    ToolWindowManagerWrapper* wrapper = new ToolWindowManagerWrapper(this);
+    wrapper->restoreState(windowData.toMap());
+    wrapper->show();
   }
   deleteAllEmptyItems();
   foreach(QWidget* toolWindow, m_toolWindows) {
@@ -271,66 +270,11 @@ void ToolWindowManager::restoreState(const QVariant &data) {
   }
 }
 
-QList<QWidget *> ToolWindowManager::floatingWindows() {
-  QSet<QWidget*> result;
-  foreach(QWidget* toolWindow, m_toolWindows) {
-    if (toolWindow->parentWidget() != 0) {
-      QWidget* window = toolWindow->topLevelWidget();
-      if (window != topLevelWidget()) {
-        result << window;
-      }
-    }
-  }
-  return result.toList();
-}
-
-QSplitter *ToolWindowManager::createDockItem(const QList<QWidget *> &toolWindows,
-                                           Qt::Orientations parentOrientation) {
-  QSplitter* splitter = createSplitter();
-  QSplitter* topSplitter;
-  if (parentOrientation == 0) {
-    topSplitter = createSplitter();
-    topSplitter->setOrientation(Qt::Horizontal);
-    splitter->setOrientation(Qt::Vertical);
-    topSplitter->addWidget(splitter);
-    setupTopLevelSplitter(topSplitter);
-  } else {
-    splitter->setOrientation(parentOrientation == Qt::Horizontal ? Qt::Vertical : Qt::Horizontal);
-    topSplitter = splitter;
-  }
-  QTabWidget* tabWidget = createTabWidget();
-  foreach(QWidget* toolWindow, toolWindows) {
-    tabWidget->addTab(toolWindow, toolWindow->windowIcon(), toolWindow->windowTitle());
-    m_lastUsedArea = tabWidget;
-  }
-  splitter->addWidget(tabWidget);
-  return topSplitter;
-}
-
-QTabWidget *ToolWindowManager::createTabWidget() {
-  QTabWidget* tabWidget = new QTabWidget();
-  tabWidget->setWindowFlags(tabWidget->windowFlags());
-  tabWidget->setMovable(true);
-  tabWidget->setTabsClosable(true);
-  connect(tabWidget, SIGNAL(tabCloseRequested(int)),
+ToolWindowManagerArea *ToolWindowManager::createArea() {
+  ToolWindowManagerArea* area = new ToolWindowManagerArea(this, 0);
+  connect(area, SIGNAL(tabCloseRequested(int)),
           this, SLOT(tabCloseRequested(int)));
-  tabWidget->installEventFilter(this); //for dragging the entire widget
-  QTabBar* tabBar;
-#if QT_VERSION >= 0x050000 // Qt5
-  tabBar = tabWidget->tabBar();
-#else //Qt4
-  tabBar = tabWidget->findChild<QTabBar*>();
-  if (!tabBar) {
-    qWarning("failed to find tab bar");
-    return tabWidget;
-  }
-#endif
-  tabBar->installEventFilter(this); // for dragging a tab
-  connect(tabBar, SIGNAL(destroyed(QObject*)),
-          this, SLOT(tabBarDestroyed(QObject*)));
-  m_hash_tabbar_to_tabwidget[tabBar] = tabWidget;
-  return tabWidget;
-
+  return area;
 }
 
 
@@ -339,15 +283,15 @@ void ToolWindowManager::hidePlaceHolder() {
   m_linePlaceHolder->hide();
   m_linePlaceHolder->setParent(this);
   m_rectPlaceHolder->setParent(this);
-  m_suggestedReceiver = 0;
-  m_suggestedIndexInSplitter = -1;
+  m_suggestions.clear();
+  m_dropCurrentSuggestionIndex = 0;
   if (m_dropSuggestionSwitchTimer.isActive()) {
     m_dropSuggestionSwitchTimer.stop();
   }
 }
 
 void ToolWindowManager::releaseToolWindow(QWidget *toolWindow) {
-  QTabWidget* previousTabWidget = findClosestParent<QTabWidget*>(toolWindow);
+  ToolWindowManagerArea* previousTabWidget = findClosestParent<ToolWindowManagerArea*>(toolWindow);
   if (!previousTabWidget) {
     qWarning("cannot find tab widget for tool window");
     return;
@@ -359,55 +303,69 @@ void ToolWindowManager::releaseToolWindow(QWidget *toolWindow) {
 }
 
 void ToolWindowManager::deleteAllEmptyItems() {
-  foreach(QTabWidget* tabWidget, m_hash_tabbar_to_tabwidget) {
+  foreach(ToolWindowManagerArea* tabWidget, m_areas) {
     deleteEmptyItems(tabWidget);
   }
-  updateEmptySpacer();
+  //updateEmptySpacer();
 }
 
-void ToolWindowManager::deleteEmptyItems(QTabWidget *tabWidget) {
-  if (tabWidget == m_emptySpacer) { return; }
-  if (tabWidget->count() == 0) {
-    QWidget* parent = tabWidget->parentWidget();
-    tabWidget->hide();
-    tabWidget->setParent(0);
-    // can't deleteLater immediately (strange MacOS)
-    QTimer::singleShot(1000, tabWidget, SLOT(deleteLater()));
-    QSplitter* splitter = qobject_cast<QSplitter*>(parent);
-    while(splitter) {
-      if (splitter->count() == 0 &&
-          splitter != m_rootSplitter &&
-          splitter != m_subRootSplitter) {
-        parent = splitter->parentWidget();
-        if (parent == splitter->topLevelWidget() &&
-            parent != this) {
-          parent->hide();
-          //parent->deleteLater();
-          QTimer::singleShot(1000, parent, SLOT(deleteLater()));
-        } else {
-          splitter->hide();
-          splitter->setParent(0);
-          //splitter->deleteLater();
-          QTimer::singleShot(1000, splitter, SLOT(deleteLater()));
-        }
-        splitter = qobject_cast<QSplitter*>(parent);
-      } else {
-        break;
+void ToolWindowManager::deleteEmptyItems(ToolWindowManagerArea *area) {
+  if (area->parentWidget() == 0) {
+    if (area->count() == 0) {
+      if (area == m_lastUsedArea) { m_lastUsedArea = 0; }
+      QTimer::singleShot(1000, area, SLOT(deleteLater()));
+    }
+    return;
+  }
+  //if (tabWidget == m_emptySpacer) { return; }
+  QSplitter* splitter = qobject_cast<QSplitter*>(area->parentWidget());
+  QSplitter* validSplitter = 0; // least top level splitter that should remain
+  QSplitter* invalidSplitter = 0; //most top level splitter that should be deleted
+  while(splitter) {
+    if (splitter->count() > 1) {
+      validSplitter = splitter;
+      break;
+    } else {
+      invalidSplitter = splitter;
+      splitter = qobject_cast<QSplitter*>(splitter->parentWidget());
+    }
+  }
+  if (!validSplitter) {
+    ToolWindowManagerWrapper* wrapper = findClosestParent<ToolWindowManagerWrapper*>(area);
+    if (!wrapper) {
+      qWarning("can't find wrapper");
+      return;
+    }
+    if (area->count() == 0 && wrapper->isWindow()) {
+      wrapper->hide();
+      QTimer::singleShot(1000, wrapper, SLOT(deleteLater()));
+    } else if (area->parent() != wrapper) {
+      wrapper->layout()->addWidget(area);
+    }
+  } else {
+    if (area->count() > 0) {
+      if (validSplitter && area->parent() != validSplitter) {
+        int index = validSplitter->indexOf(invalidSplitter);
+        validSplitter->insertWidget(index, area);
       }
     }
   }
-}
-
-QWidget *ToolWindowManager::wrapTopLevelSplitter(QSplitter *splitter) {
-  QWidget* topLevelWidget = new QWidget(this, Qt::Tool);
-  topLevelWidget->installEventFilter(this); // for close event
-  QVBoxLayout* layout = new QVBoxLayout(topLevelWidget);
-  layout->setContentsMargins(0, 0, 0, 0);
-  layout->addWidget(splitter);
-  return topLevelWidget;
+  if (invalidSplitter) {
+    invalidSplitter->hide();
+    invalidSplitter->setParent(0);
+    // can't deleteLater immediately (strange MacOS bug)
+    QTimer::singleShot(1000, invalidSplitter, SLOT(deleteLater()));
+  }
+  if (area->count() == 0) {
+    area->hide();
+    area->setParent(0);
+    if (area == m_lastUsedArea) { m_lastUsedArea = 0; }
+    QTimer::singleShot(1000, area, SLOT(deleteLater()));
+  }
 }
 
 void ToolWindowManager::execDrag(const QList<QWidget *> &toolWindows) {
+  if (toolWindows.isEmpty()) { return; }
   QStringList ids;
   foreach(QWidget* toolWindow, toolWindows) {
     ids << QString::number(m_toolWindows.indexOf(toolWindow));
@@ -419,14 +377,13 @@ void ToolWindowManager::execDrag(const QList<QWidget *> &toolWindows) {
   drag->setPixmap(generateDragPixmap(toolWindows));
   Qt::DropAction dropAction = drag->exec(Qt::MoveAction);
   if (dropAction == Qt::IgnoreAction) {
-    foreach(QWidget* toolWindow, toolWindows) {
-      releaseToolWindow(toolWindow);
+    moveToolWindows(toolWindows, NewFloatingArea);
+    QWidget* newWindow = toolWindows.first()->topLevelWidget();
+    if (!newWindow) {
+      qWarning("failed to find new window");
+      return;
     }
-    QSplitter* splitter = createDockItem(toolWindows, 0);
-    QWidget* topLevelWidget = wrapTopLevelSplitter(splitter);
-    topLevelWidget->move(QCursor::pos());
-    topLevelWidget->show();
-    deleteAllEmptyItems();
+    newWindow->move(QCursor::pos());
   }
 }
 
@@ -434,33 +391,13 @@ QVariantMap ToolWindowManager::saveSplitterState(QSplitter *splitter) {
   QVariantMap result;
   result["state"] = splitter->saveState();
   result["type"] = "splitter";
-  if (splitter == m_subRootSplitter) {
-    result["subroot"] = true;
-  }
-  if (splitter->parentWidget() == splitter->topLevelWidget()) {
-    result["geometry"] = splitter->topLevelWidget()->saveGeometry();
-  }
   QVariantList items;
   for(int i = 0; i < splitter->count(); i++) {
     QWidget* item = splitter->widget(i);
     QVariantMap itemValue;
-    QTabWidget* tabWidget = qobject_cast<QTabWidget*>(item);
-    if (tabWidget) {
-      itemValue["type"] = "tabWidget";
-      itemValue["currentIndex"] = tabWidget->currentIndex();
-      if (tabWidget == m_emptySpacer) {
-        itemValue["emptySpacer"] = true;
-      }
-      QStringList objectNames;
-      for(int i = 0; i < tabWidget->count(); i++) {
-        QString name = tabWidget->widget(i)->objectName();
-        if (name.isEmpty()) {
-          qWarning("cannot save state of tool window without object name");
-        } else {
-          objectNames << name;
-        }
-      }
-      itemValue["objectNames"] = objectNames;
+    ToolWindowManagerArea* area = qobject_cast<ToolWindowManagerArea*>(item);
+    if (area) {
+      itemValue = area->saveState();
     } else {
       QSplitter* childSplitter = qobject_cast<QSplitter*>(item);
       if (childSplitter) {
@@ -476,54 +413,25 @@ QVariantMap ToolWindowManager::saveSplitterState(QSplitter *splitter) {
 }
 
 QSplitter *ToolWindowManager::restoreSplitterState(const QVariantMap &data) {
-  if (data["items"].toList().isEmpty() && !data["subroot"].toBool()) {
-    qWarning("empty splitter encountered");
-    return 0;
+  if (data["items"].toList().count() < 2) {
+    qWarning("invalid splitter encountered");
   }
   QSplitter* splitter = createSplitter();
+
   foreach(QVariant itemData, data["items"].toList()) {
     QVariantMap itemValue = itemData.toMap();
     QString itemType = itemValue["type"].toString();
     if (itemType == "splitter") {
-      QSplitter* newSplitter = restoreSplitterState(itemValue);
-      if (newSplitter) {
-        splitter->addWidget(newSplitter);
-      }
-    } else if (itemType == "tabWidget") {
-      QTabWidget* tabWidget = createTabWidget();
-      foreach(QVariant objectNameValue, itemValue["objectNames"].toList()) {
-        QString objectName = objectNameValue.toString();
-        if (objectName.isEmpty()) { continue; }
-        bool found = false;
-        foreach(QWidget* toolWindow, m_toolWindows) {
-          if (toolWindow->objectName() == objectName) {
-            tabWidget->addTab(toolWindow, toolWindow->windowIcon(), toolWindow->windowTitle());
-            found = true;
-            break;
-          }
-        }
-        if (!found) {
-          qWarning("tool window with name '%s' not found", objectName.toLocal8Bit().constData());
-        }
-      }
-      tabWidget->setCurrentIndex(itemValue["currentIndex"].toInt());
-      if (itemValue["emptySpacer"].toBool()) {
-        m_emptySpacer = tabWidget;
-        m_emptySpacer->setUpdatesEnabled(false);
-      }
-      splitter->addWidget(tabWidget);
+      splitter->addWidget(restoreSplitterState(itemValue));
+    } else if (itemType == "area") {
+      ToolWindowManagerArea* area = createArea();
+      area->restoreState(itemValue);
+      splitter->addWidget(area);
     } else {
       qWarning("unknown item type");
     }
   }
-  if (splitter->count() == 0) {
-    delete splitter;
-    return 0;
-  }
   splitter->restoreState(data["state"].toByteArray());
-  if (data["subroot"].toBool()) {
-    m_subRootSplitter = splitter;
-  }
   return splitter;
 }
 
@@ -555,127 +463,174 @@ QPixmap ToolWindowManager::generateDragPixmap(const QList<QWidget *> &toolWindow
 }
 
 void ToolWindowManager::dropSuggestionSwitchTimeout() {
+  if (m_suggestions.isEmpty()) {
+    qWarning("dropSuggestionSwitchTimeout called but no suggestions");
+    return;
+  }
   m_dropCurrentSuggestionIndex++;
-  int currentIndex = 0, totalFound = 0;
-  bool foundPlace = false;
-  QList<QSplitter*> splitters = m_dragParent->findChildren<QSplitter*>();
-  //if (qobject_cast<QSplitter*>(m_dragParent)) {
-  splitters.prepend(m_dragParent);
-  //}
-  QWidget* topLevelWidget = m_dragParent->topLevelWidget();
-  foreach(QSplitter* splitter, splitters) {
-    int widgetsCount = splitter->count();
-    int indexUnderMouse = -1;
-    for(int widgetIndex = 0; widgetIndex < widgetsCount; ++widgetIndex) {
-      QWidget* widget = splitter->widget(widgetIndex);
-      QPoint localPos = widget->mapFromGlobal(m_dropGlobalPos);
-      if (splitter->orientation() == Qt::Horizontal) {
-        if (localPos.y() >= 0 && localPos.y() < widget->height()) {
-          if (qAbs(localPos.x()) < m_borderSensitivity) {
-            indexUnderMouse = widgetIndex;
-            break;
-          }
-          if (qAbs(localPos.x() - widget->width()) < m_borderSensitivity) {
-            indexUnderMouse = widgetIndex + 1;
-            break;
-          }
-        }
-      } else {
-        if (localPos.x() >= 0 && localPos.x() < widget->width()) {
-          if (qAbs(localPos.y()) < m_borderSensitivity) {
-            indexUnderMouse = widgetIndex;
-            break;
-          }
-          if (qAbs(localPos.y() - widget->height()) < m_borderSensitivity) {
-            indexUnderMouse = widgetIndex + 1;
-            break;
-          }
-        }
-      }
+  if (m_dropCurrentSuggestionIndex >= m_suggestions.count()) {
+    m_dropCurrentSuggestionIndex = 0;
+  }
+  const AreaReference& suggestion = m_suggestions[m_dropCurrentSuggestionIndex];
+  if (suggestion.type() == AddTo || suggestion.type() == EmptySpace) {
+    QWidget* widget;
+    if (suggestion.type() == EmptySpace) {
+      widget = findChild<ToolWindowManagerWrapper*>("", Qt::FindDirectChildrenOnly);
+    } else {
+      widget = suggestion.widget();
     }
-    if(indexUnderMouse >= 0) {
-      totalFound++;
-      if (currentIndex == m_dropCurrentSuggestionIndex) {
-        m_suggestedReceiver = splitter;
-        m_suggestedIndexInSplitter = indexUnderMouse;
-        QRect placeHolderGeometry;
-        if (splitter->orientation() == Qt::Horizontal) {
-          placeHolderGeometry.setTop(0);
-          placeHolderGeometry.setBottom(splitter->height());
-          if (m_suggestedIndexInSplitter == 0) {
-            placeHolderGeometry.setLeft(0);
-          } else if (m_suggestedIndexInSplitter == splitter->count()) {
-            placeHolderGeometry.setLeft(splitter->width() - m_rubberBandLineWidth);
-          } else {
-            placeHolderGeometry.setLeft(
-                  splitter->widget(m_suggestedIndexInSplitter)->geometry().left() -
-                  m_rubberBandLineWidth / 2);
-            if (m_suggestedIndexInSplitter > 0) {
-               placeHolderGeometry.setLeft(placeHolderGeometry.left() - m_rubberBandLineWidth / 2);
-            }
-          }
-          placeHolderGeometry.setWidth(m_rubberBandLineWidth);
-        } else {
-          placeHolderGeometry.setLeft(0);
-          placeHolderGeometry.setRight(splitter->width());
-          if (m_suggestedIndexInSplitter == 0) {
-            placeHolderGeometry.setTop(0);
-          } else if (m_suggestedIndexInSplitter == splitter->count()) {
-            placeHolderGeometry.setTop(splitter->height() - m_rubberBandLineWidth);
-          } else {
-            placeHolderGeometry.setTop(
-                  splitter->widget(m_suggestedIndexInSplitter)->geometry().top() -
-                  m_rubberBandLineWidth / 2);
-          }
-          placeHolderGeometry.setHeight(m_rubberBandLineWidth);
-        }
-        placeHolderGeometry.moveTopLeft(
-              splitter->mapTo(topLevelWidget,
-                                         placeHolderGeometry.topLeft()));
-        m_linePlaceHolder->setParent(topLevelWidget);
-        m_linePlaceHolder->setGeometry(placeHolderGeometry);
-        m_linePlaceHolder->show();
-        m_rectPlaceHolder->hide();
-        foundPlace = true;
-        break;
-      } else {
-        currentIndex++;
-      }
+    QWidget* placeHolderParent;
+    if (widget->topLevelWidget() == topLevelWidget()) {
+      placeHolderParent = this;
+    } else {
+      placeHolderParent = widget->topLevelWidget();
+    }
+    QRect placeHolderGeometry = widget->rect();
+    placeHolderGeometry.moveTopLeft(widget->mapTo(placeHolderParent,
+                                                             placeHolderGeometry.topLeft()));
+    m_rectPlaceHolder->setGeometry(placeHolderGeometry);
+    m_rectPlaceHolder->setParent(placeHolderParent);
+    m_rectPlaceHolder->show();
+    m_linePlaceHolder->hide();
+  } else if (suggestion.type() == LeftOf || suggestion.type() == RightOf ||
+             suggestion.type() == TopOf || suggestion.type() == BottomOf) {
+    QWidget* placeHolderParent;
+    if (suggestion.widget()->topLevelWidget() == topLevelWidget()) {
+      placeHolderParent = this;
+    } else {
+      placeHolderParent = suggestion.widget()->topLevelWidget();
+    }
+    QRect placeHolderGeometry = sidePlaceHolderRect(suggestion.widget(), suggestion.type());
+    placeHolderGeometry.moveTopLeft(suggestion.widget()->mapTo(placeHolderParent,
+                                                             placeHolderGeometry.topLeft()));
+
+    m_linePlaceHolder->setGeometry(placeHolderGeometry);
+    m_linePlaceHolder->setParent(placeHolderParent);
+    m_linePlaceHolder->show();
+    m_rectPlaceHolder->hide();
+  } else {
+    qWarning("unsupported suggestion type");
+  }
+}
+
+void ToolWindowManager::findSuggestions(ToolWindowManagerWrapper* wrapper) {
+  m_suggestions.clear();
+  m_dropCurrentSuggestionIndex = -1;
+  QList<QWidget*> candidates;
+  foreach(QSplitter* splitter, wrapper->findChildren<QSplitter*>()) {
+    candidates << splitter;
+  }
+  foreach(ToolWindowManagerArea* area, m_areas) {
+    if (area->topLevelWidget() == wrapper->topLevelWidget()) {
+      candidates << area;
     }
   }
-  if (!foundPlace) {
-    foreach(QTabWidget* tabWidget, m_hash_tabbar_to_tabwidget) {
-      if (tabWidget->topLevelWidget() != topLevelWidget) {
-        continue;
-      }
-      if (tabWidget->rect().contains(tabWidget->mapFromGlobal(m_dropGlobalPos))) {
-        totalFound++;
-        if (currentIndex == m_dropCurrentSuggestionIndex) {
-          m_suggestedReceiver = tabWidget;
-          QRect placeHolderGeometry = tabWidget->rect();
-          placeHolderGeometry.moveTopLeft(tabWidget->mapTo(topLevelWidget, placeHolderGeometry.topLeft()));
-          m_rectPlaceHolder->setGeometry(placeHolderGeometry);
-          m_rectPlaceHolder->setParent(topLevelWidget);
-          m_rectPlaceHolder->show();
-          m_linePlaceHolder->hide();
-          foundPlace = true;
-        }
-        break; // only one tab widget can be under mouse
+  foreach(QWidget* widget, candidates) {
+    QSplitter* splitter = qobject_cast<QSplitter*>(widget);
+    ToolWindowManagerArea* area = qobject_cast<ToolWindowManagerArea*>(widget);
+    if (!splitter && !area) {
+      qWarning("unexpected widget type");
+      continue;
+    }
+    QSplitter* parentSplitter = qobject_cast<QSplitter*>(widget->parentWidget());
+    bool lastInSplitter = parentSplitter &&
+        parentSplitter->indexOf(widget) == parentSplitter->count() - 1;
+
+    QList<AreaReferenceType> allowedSides;
+    if (!splitter || splitter->orientation() == Qt::Vertical) {
+      allowedSides << LeftOf;
+    }
+    if (!splitter || splitter->orientation() == Qt::Horizontal) {
+      allowedSides << TopOf;
+    }
+    if (!parentSplitter || parentSplitter->orientation() == Qt::Vertical || lastInSplitter) {
+      if (!splitter || splitter->orientation() == Qt::Vertical) {
+        allowedSides << RightOf;
       }
     }
+    if (!parentSplitter || parentSplitter->orientation() == Qt::Horizontal || lastInSplitter) {
+      if (!splitter || splitter->orientation() == Qt::Horizontal) {
+        allowedSides << BottomOf;
+      }
+    }
+    foreach(AreaReferenceType side, allowedSides) {
+      if (sideSensitiveArea(widget, side).contains(widget->mapFromGlobal(QCursor::pos()))) {
+        m_suggestions << AreaReference(side, widget);
+      }
+    }
+    if (area && area->rect().contains(area->mapFromGlobal(QCursor::pos()))) {
+      m_suggestions << AreaReference(AddTo, area);
+    }
+  }
+  if (candidates.isEmpty()) {
+    m_suggestions << EmptySpace;
   }
 
-  if (totalFound > 0 && !foundPlace) {
-    m_dropCurrentSuggestionIndex = -1;
+  if (m_suggestions.isEmpty()) {
+    hidePlaceHolder();
+  } else {
     dropSuggestionSwitchTimeout();
   }
-  if (totalFound == 0 && !foundPlace) {
-    hidePlaceHolder();
+}
+
+QRect ToolWindowManager::sideSensitiveArea(QWidget *widget, ToolWindowManager::AreaReferenceType side) {
+  QRect widgetRect = widget->rect();
+  if (side == TopOf) {
+    return QRect(QPoint(widgetRect.left(), widgetRect.top() - m_borderSensitivity),
+                 QSize(widgetRect.width(), m_borderSensitivity * 2));
+  } else if (side == LeftOf) {
+    return QRect(QPoint(widgetRect.left() - m_borderSensitivity, widgetRect.top()),
+                 QSize(m_borderSensitivity * 2, widgetRect.height()));
+
+  } else if (side == BottomOf) {
+    return QRect(QPoint(widgetRect.left(), widgetRect.top() + widgetRect.height() - m_borderSensitivity),
+                 QSize(widgetRect.width(), m_borderSensitivity * 2));
+  } else if (side == RightOf) {
+    return QRect(QPoint(widgetRect.left() + widgetRect.width() - m_borderSensitivity, widgetRect.top()),
+                 QSize(m_borderSensitivity * 2, widgetRect.height()));
+  } else {
+    qWarning("invalid side");
+    return QRect();
+  }
+}
+
+QRect ToolWindowManager::sidePlaceHolderRect(QWidget *widget, ToolWindowManager::AreaReferenceType side) {
+  QRect widgetRect = widget->rect();
+  QSplitter* parentSplitter = qobject_cast<QSplitter*>(widget->parentWidget());
+  if (parentSplitter && parentSplitter->indexOf(widget) > 0) {
+    int delta = parentSplitter->handleWidth() / 2 + m_rubberBandLineWidth / 2;
+    if (side == TopOf && parentSplitter->orientation() == Qt::Vertical) {
+      return QRect(QPoint(widgetRect.left(), widgetRect.top() - delta),
+                   QSize(widgetRect.width(), m_rubberBandLineWidth));
+    } else if (side == LeftOf && parentSplitter->orientation() == Qt::Horizontal) {
+      return QRect(QPoint(widgetRect.left() - delta, widgetRect.top()),
+                   QSize(m_rubberBandLineWidth, widgetRect.height()));
+    }
+  }
+  if (side == TopOf) {
+    return QRect(QPoint(widgetRect.left(), widgetRect.top()),
+                 QSize(widgetRect.width(), m_rubberBandLineWidth));
+  } else if (side == LeftOf) {
+    return QRect(QPoint(widgetRect.left(), widgetRect.top()),
+                 QSize(m_rubberBandLineWidth, widgetRect.height()));
+  } else if (side == BottomOf) {
+    return QRect(QPoint(widgetRect.left(), widgetRect.top() + widgetRect.height() - m_rubberBandLineWidth),
+                 QSize(widgetRect.width(), m_rubberBandLineWidth));
+  } else if (side == RightOf) {
+    return QRect(QPoint(widgetRect.left() + widgetRect.width() - m_rubberBandLineWidth, widgetRect.top()),
+                 QSize(m_rubberBandLineWidth, widgetRect.height()));
+  } else {
+    qWarning("invalid side");
+    return QRect();
   }
 }
 
 void ToolWindowManager::tabCloseRequested(int index) {
-  QTabWidget* tabWidget = static_cast<QTabWidget*>(sender());
+  ToolWindowManagerArea* tabWidget = qobject_cast<ToolWindowManagerArea*>(sender());
+  if (!tabWidget) {
+    qWarning("sender is not a ToolWindowManagerArea");
+    return;
+  }
   QWidget* toolWindow = tabWidget->widget(index);
   if (!m_toolWindows.contains(toolWindow)) {
     qWarning("unknown tab in tab widget");
@@ -684,181 +639,8 @@ void ToolWindowManager::tabCloseRequested(int index) {
   hideToolWindow(toolWindow);
 }
 
-void ToolWindowManager::tabBarDestroyed(QObject *object) {
-  QTabWidget* deletedTabWidget = m_hash_tabbar_to_tabwidget[static_cast<QTabBar*>(object)];
-  if (deletedTabWidget == m_lastUsedArea) {
-    m_lastUsedArea = 0;
-  }
-  m_hash_tabbar_to_tabwidget.remove(static_cast<QTabBar*>(object));
-  if (m_emptySpacer == deletedTabWidget) {
-    m_emptySpacer = 0;
-  }
-  updateEmptySpacer();
-}
-
-bool ToolWindowManager::eventFilter(QObject *object, QEvent *event) {
-  QTabBar* tabBar = qobject_cast<QTabBar*>(object);
-  if (tabBar) {
-    return tabBarEventFilter(tabBar, event);
-  }
-  QTabWidget* tabWidget = qobject_cast<QTabWidget*>(object);
-  if (tabWidget) {
-    return tabWidgetEventFilter(tabWidget, event);
-  }
-  QSplitter* topSplitter = qobject_cast<QSplitter*>(object);
-  if (topSplitter) {
-    return topSplitterEventFilter(topSplitter, event);
-  }
-  if (event->type() == QEvent::Close) {
-    foreach(QTabWidget* tabWidget, object->findChildren<QTabWidget*>()) {
-      while(tabWidget->count() > 0) {
-        QWidget* toolWindow = tabWidget->widget(0);
-        hideToolWindow(toolWindow);
-      }
-    }
-  }
+bool ToolWindowManager::eventFilter(QObject *, QEvent *) {
   return false;
-}
-
-bool ToolWindowManager::tabBarEventFilter(QTabBar *tabBar, QEvent *event) {
-  if (!m_hash_tabbar_to_tabwidget.contains(tabBar)) {
-    qWarning("unknown tabbar");
-    return false;
-  }
-  QTabWidget* tabWidget = m_hash_tabbar_to_tabwidget[tabBar];
-  if (event->type() == QEvent::MouseMove) {
-    if (tabBar->rect().contains(static_cast<QMouseEvent*>(event)->pos())) {
-      return false;
-    }
-    if (!(qApp->mouseButtons() & Qt::LeftButton)) {
-      return false;
-    }
-    QWidget* toolWindow = tabWidget->currentWidget();
-    if (!toolWindow || !m_toolWindows.contains(toolWindow)) {
-      return false;
-    }
-    QMouseEvent* releaseEvent = new QMouseEvent(QEvent::MouseButtonRelease,
-                                                static_cast<QMouseEvent*>(event)->pos(),
-                                                Qt::LeftButton, Qt::LeftButton, 0);
-    qApp->sendEvent(tabBar, releaseEvent);
-    execDrag(QList<QWidget*>() << toolWindow);
-  }
-  return false;
-}
-
-bool ToolWindowManager::tabWidgetEventFilter(QTabWidget *tabWidget, QEvent *event) {
-  if (event->type() == QEvent::MouseButtonPress &&
-      qApp->mouseButtons() & Qt::LeftButton &&
-      tabWidget != m_emptySpacer) {
-    m_tabWidgetDragCanStart = true;
-  } else if (event->type() == QEvent::MouseButtonRelease) {
-    m_tabWidgetDragCanStart = false;
-  } else if (event->type() == QEvent::MouseMove &&
-      qApp->mouseButtons() & Qt::LeftButton &&
-      !tabWidget->rect().contains(tabWidget->mapFromGlobal(QCursor::pos())) &&
-      m_tabWidgetDragCanStart) {
-    m_tabWidgetDragCanStart = false;
-    QList<QWidget*> toolWindows;
-    for(int i = 0; i < tabWidget->count(); i++) {
-      QWidget* toolWindow = tabWidget->widget(i);
-      if (!m_toolWindows.contains(toolWindow)) {
-        qWarning("tab widget contains unmanaged widget");
-      } else {
-        toolWindows << toolWindow;
-      }
-    }
-    execDrag(toolWindows);
-  }
-  return false;
-}
-
-bool ToolWindowManager::topSplitterEventFilter(QSplitter *topSplitter, QEvent *event) {
-  if (event->type() == QEvent::DragEnter) {
-    if (static_cast<QDragEnterEvent*>(event)->mimeData()->formats().contains(m_dragMimeType)) {
-      event->accept();
-    }
-  } else if (event->type() == QEvent::DragMove) {
-    m_dragParent = topSplitter;
-    m_dropGlobalPos = QCursor::pos();
-    m_dropCurrentSuggestionIndex = -1;
-    dropSuggestionSwitchTimeout();
-    if (m_suggestedReceiver) {
-      if (m_dropSuggestionSwitchTimer.isActive()) {
-        m_dropSuggestionSwitchTimer.stop();
-      }
-      m_dropSuggestionSwitchTimer.start();
-    }
-    event->setAccepted(m_suggestedReceiver != 0);
-  } else if (event->type() == QEvent::DragLeave) {
-    if (!topSplitter->rect().contains(topSplitter->mapFromGlobal(QCursor::pos()))) {
-      hidePlaceHolder();
-    }
-    m_dragParent = 0;
-  } else if (event->type() == QEvent::Drop) {
-    if (!m_suggestedReceiver) {
-      qWarning("unexpected drop event");
-      return false;
-    }
-    QByteArray data = static_cast<QDropEvent*>(event)->mimeData()->data(m_dragMimeType);
-    QList<QWidget*> toolWindows;
-    foreach(QByteArray dataItem, data.split(';')) {
-      bool ok = false;
-      int toolWindowIndex = dataItem.toInt(&ok);
-      if (!ok || toolWindowIndex < 0 || toolWindowIndex >= m_toolWindows.count()) {
-        qWarning("invalid index in mime data");
-        return false;
-      }
-      QWidget* toolWindow = m_toolWindows[toolWindowIndex];
-      releaseToolWindow(toolWindow);
-      toolWindows << toolWindow;
-    }
-    QSplitter* splitter = qobject_cast<QSplitter*>(m_suggestedReceiver);
-    if (splitter) {
-      splitter->insertWidget(m_suggestedIndexInSplitter,
-        createDockItem(toolWindows, splitter->orientation()));
-      addMissingSplitters(splitter);
-    } else {
-      QTabWidget* tabWidget = static_cast<QTabWidget*>(m_suggestedReceiver);
-      foreach(QWidget* toolWindow, toolWindows) {
-        tabWidget->addTab(toolWindow, toolWindow->windowIcon(), toolWindow->windowTitle());
-      }
-      m_lastUsedArea = tabWidget;
-    }
-    hidePlaceHolder();
-    static_cast<QDropEvent*>(event)->acceptProposedAction();
-    deleteAllEmptyItems();
-    m_dragParent = 0;
-  }
-  return false;
-}
-
-void ToolWindowManager::setupTopLevelSplitter(QSplitter *splitter) {
-  splitter->setAcceptDrops(true);
-  splitter->installEventFilter(this); // for dropping
-}
-
-void ToolWindowManager::updateEmptySpacer() {
-  if (m_emptySpacer && m_emptySpacer->count() > 0) {
-     m_emptySpacer->setUpdatesEnabled(true);
-    m_emptySpacer = 0;
-  }
-  bool anyContent = false; //m_subRootSplitter->count() > 0;
-  foreach(QTabWidget* tabWidget, m_rootSplitter->findChildren<QTabWidget*>()) {
-    if (tabWidget != m_emptySpacer) {
-      anyContent = true;
-      break;
-    }
-  }
-  if (!anyContent && !m_emptySpacer && m_subRootSplitter) {
-    m_emptySpacer = createTabWidget();
-    m_emptySpacer->setUpdatesEnabled(false);
-    m_subRootSplitter->addWidget(m_emptySpacer);
-  }
-  if (anyContent && m_emptySpacer) {
-    m_emptySpacer->hide();
-    delete m_emptySpacer;
-    m_emptySpacer = 0;
-  }
 }
 
 QSplitter *ToolWindowManager::createSplitter() {
@@ -867,5 +649,38 @@ QSplitter *ToolWindowManager::createSplitter() {
   return splitter;
 }
 
+ToolWindowManager::AreaReference::AreaReference(ToolWindowManager::AreaReferenceType type, ToolWindowManagerArea *area) {
+  m_type = type;
+  setWidget(area);
+}
 
+void ToolWindowManager::AreaReference::setWidget(QWidget *widget) {
+  if (m_type == LastUsedArea || m_type == NewFloatingArea || m_type == NoArea || m_type == EmptySpace) {
+    if (widget != 0) {
+      qWarning("area parameter ignored for this type");
+    }
+    m_widget = 0;
+  } else if (m_type == AddTo) {
+    m_widget = qobject_cast<ToolWindowManagerArea*>(widget);
+    if (!m_widget) {
+      qWarning("only ToolWindowManagerArea can be used with this type");
+    }
+  } else {
+    if (!qobject_cast<ToolWindowManagerArea*>(widget) &&
+        !qobject_cast<QSplitter*>(widget)) {
+      qWarning("only ToolWindowManagerArea or splitter can be used with this type");
+      m_widget = 0;
+    } else {
+      m_widget = widget;
+    }
+  }
+}
 
+ToolWindowManagerArea *ToolWindowManager::AreaReference::area() const {
+  return qobject_cast<ToolWindowManagerArea*>(m_widget);
+}
+
+ToolWindowManager::AreaReference::AreaReference(ToolWindowManager::AreaReferenceType type, QWidget *widget) {
+  m_type = type;
+  setWidget(widget);
+}

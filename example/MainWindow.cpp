@@ -37,6 +37,7 @@ MainWindow::MainWindow(QWidget *parent) :
   connect(ui->toolWindowManager, SIGNAL(toolWindowVisibilityChanged(QWidget*,bool)),
           this, SLOT(toolWindowVisibilityChanged(QWidget*,bool)));
 
+  QList<QPushButton*> toolWindows;
   for(int i = 0; i < 6; i++) {
     QPushButton* b1 = new QPushButton(QString("tool%1").arg(i + 1));
     b1->setWindowTitle(b1->text());
@@ -47,9 +48,21 @@ MainWindow::MainWindow(QWidget *parent) :
     action->setChecked(true);
     connect(action, SIGNAL(triggered(bool)), this, SLOT(toolWindowActionToggled(bool)));
     actions << action;
-    ui->toolWindowManager->addToolWindow(b1, i > 2 ? ToolWindowManager::RightDockArea :
-                                                     ToolWindowManager::LeftDockArea);
+    toolWindows << b1;
   }
+  ui->toolWindowManager->addToolWindow(toolWindows[0], ToolWindowManager::EmptySpace);
+  ui->toolWindowManager->addToolWindow(toolWindows[1], ToolWindowManager::LastUsedArea);
+  ui->toolWindowManager->addToolWindow(toolWindows[2], ToolWindowManager::LastUsedArea);
+  ui->toolWindowManager->addToolWindow(toolWindows[3],
+      ToolWindowManager::AreaReference(ToolWindowManager::LeftOf,
+                                       ui->toolWindowManager->areaOf(toolWindows[2])));
+  ui->toolWindowManager->addToolWindow(toolWindows[4], ToolWindowManager::LastUsedArea);
+  ui->toolWindowManager->addToolWindow(toolWindows[5],
+      ToolWindowManager::AreaReference(ToolWindowManager::TopOf,
+                                       ui->toolWindowManager->areaOf(toolWindows[4])));
+
+
+  resize(600, 400);
   on_actionRestoreState_triggered();
 }
 
