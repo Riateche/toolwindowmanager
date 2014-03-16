@@ -210,7 +210,7 @@ private:
   int m_borderSensitivity;
   int m_rubberBandLineWidth;
   QString m_dragMimeType;
-  QLabel* m_detachTarget;
+  QWidget* m_detachTarget;
 
   QRubberBand* m_rectPlaceHolder; // placeholder objects used for displaying drop suggestions
   QRubberBand* m_linePlaceHolder;
