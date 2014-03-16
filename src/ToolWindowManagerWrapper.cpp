@@ -55,18 +55,7 @@ void ToolWindowManagerWrapper::dropEvent(QDropEvent *event) {
     return;
   }
   ToolWindowManager::AreaReference suggestion = m_manager->m_suggestions[m_manager->m_dropCurrentSuggestionIndex];
-  QByteArray data = static_cast<QDropEvent*>(event)->mimeData()->data(m_manager->m_dragMimeType);
-  QList<QWidget*> toolWindows;
-  foreach(QByteArray dataItem, data.split(';')) {
-    bool ok = false;
-    int toolWindowIndex = dataItem.toInt(&ok);
-    if (!ok || toolWindowIndex < 0 || toolWindowIndex >= m_manager->m_toolWindows.count()) {
-      qWarning("invalid index in mime data");
-      return;
-    }
-    QWidget* toolWindow = m_manager->m_toolWindows[toolWindowIndex];
-    toolWindows << toolWindow;
-  }
+  QList<QWidget*> toolWindows = m_manager->extractToolWindowsFromDropEvent(event);
   m_manager->hidePlaceHolder();
   event->acceptProposedAction();
   m_manager->moveToolWindows(toolWindows, suggestion);

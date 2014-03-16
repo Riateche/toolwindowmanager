@@ -33,6 +33,7 @@
 #include <QMimeData>
 #include <QMouseEvent>
 #include <QPainter>
+#include <QDesktopWidget>
 
 template<class T>
 T findClosestParent(QWidget* widget) {
@@ -48,6 +49,7 @@ T findClosestParent(QWidget* widget) {
 ToolWindowManager::ToolWindowManager(QWidget *parent) :
   QWidget(parent)
 {
+  m_detachTarget = 0;
   m_borderSensitivity = 12;
   m_dragMimeType = "application/x-tool-window-ids";
   QSplitter* testSplitter = new QSplitter();
@@ -65,6 +67,7 @@ ToolWindowManager::ToolWindowManager(QWidget *parent) :
 
   m_rectPlaceHolder = new QRubberBand(QRubberBand::Rectangle, this);
   m_linePlaceHolder = new QRubberBand(QRubberBand::Line, this);
+
 }
 
 ToolWindowManager::~ToolWindowManager() {
@@ -131,6 +134,7 @@ void ToolWindowManager::moveToolWindows(QList<QWidget *> toolWindows, ToolWindow
     area->addToolWindows(toolWindows);
     ToolWindowManagerWrapper* wrapper = new ToolWindowManagerWrapper(this);
     wrapper->layout()->addWidget(area);
+    wrapper->move(QCursor::pos());
     wrapper->show();
   } else if (area.type() == AddTo) {
     area.area()->addToolWindows(toolWindows);
@@ -370,21 +374,24 @@ void ToolWindowManager::execDrag(const QList<QWidget *> &toolWindows) {
   foreach(QWidget* toolWindow, toolWindows) {
     ids << QString::number(m_toolWindows.indexOf(toolWindow));
   }
+  m_detachTarget = new QWidget();
+  m_detachTarget->move(0, 0);
+  m_detachTarget->resize(qApp->desktop()->size());
+  m_detachTarget->setWindowFlags(m_detachTarget->windowFlags() | Qt::FramelessWindowHint);
+  m_detachTarget->setAttribute(Qt::WA_TranslucentBackground);
+  m_detachTarget->setAttribute(Qt::WA_NoSystemBackground);
+  m_detachTarget->setAcceptDrops(true);
+  m_detachTarget->installEventFilter(this);
+  m_detachTarget->show();
+  activateWindow();
   QDrag* drag = new QDrag(this);
   QMimeData* mimeData = new QMimeData();
   mimeData->setData(m_dragMimeType, ids.join(";").toLatin1());
   drag->setMimeData(mimeData);
   drag->setPixmap(generateDragPixmap(toolWindows));
-  Qt::DropAction dropAction = drag->exec(Qt::MoveAction);
-  if (dropAction == Qt::IgnoreAction) {
-    moveToolWindows(toolWindows, NewFloatingArea);
-    QWidget* newWindow = toolWindows.first()->topLevelWidget();
-    if (!newWindow) {
-      qWarning("failed to find new window");
-      return;
-    }
-    newWindow->move(QCursor::pos());
-  }
+  drag->exec(Qt::MoveAction);
+  delete m_detachTarget;
+  m_detachTarget = 0;
 }
 
 QVariantMap ToolWindowManager::saveSplitterState(QSplitter *splitter) {
@@ -625,6 +632,21 @@ QRect ToolWindowManager::sidePlaceHolderRect(QWidget *widget, ToolWindowManager:
   }
 }
 
+QList<QWidget *> ToolWindowManager::extractToolWindowsFromDropEvent(QDropEvent *event) {
+  QByteArray data = event->mimeData()->data(m_dragMimeType);
+  QList<QWidget*> toolWindows;
+  foreach(QByteArray dataItem, data.split(';')) {
+    bool ok = false;
+    int toolWindowIndex = dataItem.toInt(&ok);
+    if (!ok || toolWindowIndex < 0 || toolWindowIndex >= m_toolWindows.count()) {
+      qWarning("invalid index in mime data");
+      return QList<QWidget*>();
+    }
+    toolWindows << m_toolWindows[toolWindowIndex];
+  }
+  return toolWindows;
+}
+
 void ToolWindowManager::tabCloseRequested(int index) {
   ToolWindowManagerArea* tabWidget = qobject_cast<ToolWindowManagerArea*>(sender());
   if (!tabWidget) {
@@ -639,7 +661,20 @@ void ToolWindowManager::tabCloseRequested(int index) {
   hideToolWindow(toolWindow);
 }
 
-bool ToolWindowManager::eventFilter(QObject *, QEvent *) {
+bool ToolWindowManager::eventFilter(QObject* object, QEvent* event) {
+  if (object == m_detachTarget) {
+    if (event->type() == QEvent::DragEnter) {
+      if (static_cast<QDragEnterEvent*>(event)->mimeData()->formats().contains(m_dragMimeType)) {
+        event->accept();
+      }
+    } else if (event->type() == QEvent::DragMove) {
+      event->accept();
+    } else if (event->type() == QEvent::Drop) {
+      static_cast<QDropEvent*>(event)->acceptProposedAction();
+      moveToolWindows(extractToolWindowsFromDropEvent(static_cast<QDropEvent*>(event)),
+                      NewFloatingArea);
+    }
+  }
   return false;
 }
 

@@ -209,6 +209,7 @@ private:
   int m_borderSensitivity;
   int m_rubberBandLineWidth;
   QString m_dragMimeType;
+  QWidget* m_detachTarget;
 
   QRubberBand* m_rectPlaceHolder; // placeholder objects used for displaying drop suggestions
   QRubberBand* m_linePlaceHolder;
@@ -239,6 +240,8 @@ private:
 
   QRect sideSensitiveArea(QWidget* widget, AreaReferenceType side);
   QRect sidePlaceHolderRect(QWidget* widget, AreaReferenceType side);
+
+  QList<QWidget*> extractToolWindowsFromDropEvent(QDropEvent* event);
 
 
 protected:
