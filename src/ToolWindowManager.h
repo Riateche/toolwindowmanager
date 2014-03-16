@@ -33,6 +33,7 @@
 #include <QRubberBand>
 #include <QHash>
 #include <QVariant>
+#include <QLabel>
 
 class ToolWindowManagerArea;
 class ToolWindowManagerWrapper;
@@ -209,7 +210,7 @@ private:
   int m_borderSensitivity;
   int m_rubberBandLineWidth;
   QString m_dragMimeType;
-  QWidget* m_detachTarget;
+  QLabel* m_detachTarget;
 
   QRubberBand* m_rectPlaceHolder; // placeholder objects used for displaying drop suggestions
   QRubberBand* m_linePlaceHolder;

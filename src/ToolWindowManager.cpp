@@ -34,6 +34,7 @@
 #include <QMouseEvent>
 #include <QPainter>
 #include <QDesktopWidget>
+#include <QScreen>
 
 template<class T>
 T findClosestParent(QWidget* widget) {
@@ -374,12 +375,18 @@ void ToolWindowManager::execDrag(const QList<QWidget *> &toolWindows) {
   foreach(QWidget* toolWindow, toolWindows) {
     ids << QString::number(m_toolWindows.indexOf(toolWindow));
   }
-  m_detachTarget = new QWidget();
-  m_detachTarget->move(0, 0);
+  QRect screenShotRect = qApp->primaryScreen()->availableGeometry();
+  QPixmap screenShot = qApp->primaryScreen()->grabWindow(
+        QApplication::desktop()->winId(),
+        screenShotRect.left(),
+        screenShotRect.top(),
+        screenShotRect.width(),
+        screenShotRect.height());
+  m_detachTarget = new QLabel();
+  m_detachTarget->setPixmap(screenShot);
+  m_detachTarget->move(QApplication::desktop()->mapToGlobal(QPoint(0, 0)));
   m_detachTarget->resize(qApp->desktop()->size());
   m_detachTarget->setWindowFlags(m_detachTarget->windowFlags() | Qt::FramelessWindowHint);
-  m_detachTarget->setAttribute(Qt::WA_TranslucentBackground);
-  m_detachTarget->setAttribute(Qt::WA_NoSystemBackground);
   m_detachTarget->setAcceptDrops(true);
   m_detachTarget->installEventFilter(this);
   m_detachTarget->show();
