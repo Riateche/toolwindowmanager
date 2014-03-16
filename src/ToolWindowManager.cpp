@@ -377,12 +377,12 @@ void ToolWindowManager::execDrag(const QList<QWidget *> &toolWindows) {
   }
   m_detachTarget = new QWidget();
   m_detachTarget->move(0, 0);
-  m_detachTarget->setWindowOpacity(0.1);
   m_detachTarget->resize(qApp->desktop()->size());
   m_detachTarget->setWindowFlags(m_detachTarget->windowFlags() | Qt::FramelessWindowHint);
   m_detachTarget->setAcceptDrops(true);
   m_detachTarget->installEventFilter(this);
   m_detachTarget->show();
+  m_detachTarget->setWindowOpacity(0.1);
   activateWindow();
   topLevelWidget()->raise();
   QDrag* drag = new QDrag(this);
