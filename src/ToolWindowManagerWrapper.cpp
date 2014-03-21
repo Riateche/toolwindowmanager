@@ -5,6 +5,7 @@
 #include <QDragEnterEvent>
 #include <QMimeData>
 #include <QDebug>
+#include <QApplication>
 
 ToolWindowManagerWrapper::ToolWindowManagerWrapper(ToolWindowManager *manager) :
   QWidget(manager)
@@ -82,11 +83,11 @@ QVariantMap ToolWindowManagerWrapper::saveState() {
   }
   QVariantMap result;
   result["geometry"] = saveGeometry();
-  QSplitter* splitter = findChild<QSplitter*>("", Qt::FindDirectChildrenOnly);
+  QSplitter* splitter = findChild<QSplitter*>();
   if (splitter) {
     result["splitter"] = m_manager->saveSplitterState(splitter);
   } else {
-    ToolWindowManagerArea* area = findChild<ToolWindowManagerArea*>("", Qt::FindDirectChildrenOnly);
+    ToolWindowManagerArea* area = findChild<ToolWindowManagerArea*>();
     if (area) {
       result["area"] = area->saveState();
     } else if (layout()->count() > 0) {

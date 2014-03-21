@@ -2,6 +2,7 @@
 #define TOOLWINDOWMANAGERAREA_H
 
 #include <QTabWidget>
+#include <QVariantMap>
 
 class ToolWindowManager;
 

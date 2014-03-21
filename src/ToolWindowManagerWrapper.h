@@ -2,6 +2,7 @@
 #define TOOLWINDOWMANAGERWRAPPER_H
 
 #include <QWidget>
+#include <QVariantMap>
 
 class ToolWindowManager;
 

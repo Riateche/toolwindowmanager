@@ -190,7 +190,7 @@ void ToolWindowManager::moveToolWindows(QList<QWidget *> toolWindows, ToolWindow
     }
   } else if (area.type() == EmptySpace) {
     ToolWindowManagerArea* newArea = createArea();
-    findChild<ToolWindowManagerWrapper*>("", Qt::FindDirectChildrenOnly)->layout()->addWidget(newArea);
+    findChild<ToolWindowManagerWrapper*>()->layout()->addWidget(newArea);
     newArea->addToolWindows(toolWindows);
   } else if (area.type() == LastUsedArea) {
     m_lastUsedArea->addToolWindows(toolWindows);
@@ -311,7 +311,6 @@ void ToolWindowManager::deleteAllEmptyItems() {
   foreach(ToolWindowManagerArea* tabWidget, m_areas) {
     deleteEmptyItems(tabWidget);
   }
-  //updateEmptySpacer();
 }
 
 void ToolWindowManager::deleteEmptyItems(ToolWindowManagerArea *area) {
@@ -322,7 +321,6 @@ void ToolWindowManager::deleteEmptyItems(ToolWindowManagerArea *area) {
     }
     return;
   }
-  //if (tabWidget == m_emptySpacer) { return; }
   QSplitter* splitter = qobject_cast<QSplitter*>(area->parentWidget());
   QSplitter* validSplitter = 0; // least top level splitter that should remain
   QSplitter* invalidSplitter = 0; //most top level splitter that should be deleted
@@ -483,7 +481,7 @@ void ToolWindowManager::dropSuggestionSwitchTimeout() {
   if (suggestion.type() == AddTo || suggestion.type() == EmptySpace) {
     QWidget* widget;
     if (suggestion.type() == EmptySpace) {
-      widget = findChild<ToolWindowManagerWrapper*>("", Qt::FindDirectChildrenOnly);
+      widget = findChild<ToolWindowManagerWrapper*>();
     } else {
       widget = suggestion.widget();
     }
@@ -524,6 +522,7 @@ void ToolWindowManager::dropSuggestionSwitchTimeout() {
 void ToolWindowManager::findSuggestions(ToolWindowManagerWrapper* wrapper) {
   m_suggestions.clear();
   m_dropCurrentSuggestionIndex = -1;
+  QPoint globalPos = QCursor::pos();
   QList<QWidget*> candidates;
   foreach(QSplitter* splitter, wrapper->findChildren<QSplitter*>()) {
     candidates << splitter;
@@ -562,11 +561,11 @@ void ToolWindowManager::findSuggestions(ToolWindowManagerWrapper* wrapper) {
       }
     }
     foreach(AreaReferenceType side, allowedSides) {
-      if (sideSensitiveArea(widget, side).contains(widget->mapFromGlobal(QCursor::pos()))) {
+      if (sideSensitiveArea(widget, side).contains(widget->mapFromGlobal(globalPos))) {
         m_suggestions << AreaReference(side, widget);
       }
     }
-    if (area && area->rect().contains(area->mapFromGlobal(QCursor::pos()))) {
+    if (area && area->rect().contains(area->mapFromGlobal(globalPos))) {
       m_suggestions << AreaReference(AddTo, area);
     }
   }
