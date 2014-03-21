@@ -2,12 +2,14 @@
 #include "ToolWindowManager.h"
 #include <QApplication>
 #include <QMouseEvent>
+#include <QDebug>
 
 ToolWindowManagerArea::ToolWindowManagerArea(ToolWindowManager *manager, QWidget *parent) :
   QTabWidget(parent)
 , m_manager(manager)
 {
   m_dragCanStart = false;
+  m_tabDragCanStart = false;
   setMovable(true);
   setTabsClosable(true);
   setDocumentMode(true);
@@ -41,7 +43,7 @@ QList<QWidget *> ToolWindowManagerArea::toolWindows() {
 }
 
 void ToolWindowManagerArea::mousePressEvent(QMouseEvent *) {
-  if (qApp->mouseButtons() & Qt::LeftButton) {
+  if (qApp->mouseButtons() == Qt::LeftButton) {
     m_dragCanStart = true;
   }
 }
@@ -51,40 +53,44 @@ void ToolWindowManagerArea::mouseReleaseEvent(QMouseEvent *) {
 }
 
 void ToolWindowManagerArea::mouseMoveEvent(QMouseEvent *) {
-  if (qApp->mouseButtons() & Qt::LeftButton &&
-      !rect().contains(mapFromGlobal(QCursor::pos())) &&
-      m_dragCanStart) {
-    m_dragCanStart = false;
-    QList<QWidget*> toolWindows;
-    for(int i = 0; i < count(); i++) {
-      QWidget* toolWindow = widget(i);
-      if (!m_manager->m_toolWindows.contains(toolWindow)) {
-        qWarning("tab widget contains unmanaged widget");
-      } else {
-        toolWindows << toolWindow;
-      }
-    }
-    m_manager->execDrag(toolWindows);
-  }
+  check_mouse_move();
 }
 
 bool ToolWindowManagerArea::eventFilter(QObject *object, QEvent *event) {
-  if (object == tabBar() && event->type() == QEvent::MouseMove) {
-    if (tabBar()->rect().contains(static_cast<QMouseEvent*>(event)->pos())) {
-      return false;
+  if (object == tabBar()) {
+    if (event->type() == QEvent::MouseButtonPress &&
+        qApp->mouseButtons() == Qt::LeftButton) {
+      if (tabBar()->tabAt(static_cast<QMouseEvent*>(event)->pos()) >= 0 ) {
+        m_tabDragCanStart = true;
+      } else {
+        m_dragCanStart = true;
+      }
+
+    } else if (event->type() == QEvent::MouseButtonRelease) {
+      m_tabDragCanStart = false;
+      m_dragCanStart = false;
+    } else if (event->type() == QEvent::MouseMove) {
+      if (m_tabDragCanStart) {
+        if (tabBar()->rect().contains(static_cast<QMouseEvent*>(event)->pos())) {
+          return false;
+        }
+        if (qApp->mouseButtons() != Qt::LeftButton) {
+          return false;
+        }
+        QWidget* toolWindow = currentWidget();
+        if (!toolWindow || !m_manager->m_toolWindows.contains(toolWindow)) {
+          return false;
+        }
+        m_tabDragCanStart = false;
+        QMouseEvent* releaseEvent = new QMouseEvent(QEvent::MouseButtonRelease,
+                                                    static_cast<QMouseEvent*>(event)->pos(),
+                                                    Qt::LeftButton, Qt::LeftButton, 0);
+        qApp->sendEvent(tabBar(), releaseEvent);
+        m_manager->execDrag(QList<QWidget*>() << toolWindow);
+      } else if (m_dragCanStart) {
+        check_mouse_move();
+      }
     }
-    if (!(qApp->mouseButtons() & Qt::LeftButton)) {
-      return false;
-    }
-    QWidget* toolWindow = currentWidget();
-    if (!toolWindow || !m_manager->m_toolWindows.contains(toolWindow)) {
-      return false;
-    }
-    QMouseEvent* releaseEvent = new QMouseEvent(QEvent::MouseButtonRelease,
-                                                static_cast<QMouseEvent*>(event)->pos(),
-                                                Qt::LeftButton, Qt::LeftButton, 0);
-    qApp->sendEvent(tabBar(), releaseEvent);
-    m_manager->execDrag(QList<QWidget*>() << toolWindow);
   }
   return QTabWidget::eventFilter(object, event);
 }
@@ -123,4 +129,22 @@ void ToolWindowManagerArea::restoreState(const QVariantMap &data) {
     }
   }
   setCurrentIndex(data["currentIndex"].toInt());
+}
+
+void ToolWindowManagerArea::check_mouse_move() {
+  if (qApp->mouseButtons() == Qt::LeftButton &&
+      !rect().contains(mapFromGlobal(QCursor::pos())) &&
+      m_dragCanStart) {
+    m_dragCanStart = false;
+    QList<QWidget*> toolWindows;
+    for(int i = 0; i < count(); i++) {
+      QWidget* toolWindow = widget(i);
+      if (!m_manager->m_toolWindows.contains(toolWindow)) {
+        qWarning("tab widget contains unmanaged widget");
+      } else {
+        toolWindows << toolWindow;
+      }
+    }
+    m_manager->execDrag(toolWindows);
+  }
 }

@@ -26,8 +26,12 @@ private:
                        // that can be considered as dragging it if the cursor will leave
                        // its area
 
+  bool m_tabDragCanStart;
+
   QVariantMap saveState();
   void restoreState(const QVariantMap& data);
+
+  void check_mouse_move();
 
   friend class ToolWindowManager;
   friend class ToolWindowManagerWrapper;
