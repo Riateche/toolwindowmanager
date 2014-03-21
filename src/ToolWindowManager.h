@@ -195,6 +195,9 @@ public:
   int rubberBandLineWidth() { return m_rubberBandLineWidth; }
   /*! \endcond */
 
+  QRubberBand* rectRubberBand() { return m_rectPlaceHolder; }
+  QRubberBand* lineRubberBand() { return m_linePlaceHolder; }
+
 
 signals:
   /*!
