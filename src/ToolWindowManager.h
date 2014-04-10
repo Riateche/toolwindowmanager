@@ -94,6 +94,7 @@ public:
    */
   virtual ~ToolWindowManager();
 
+  //! Type of AreaReference.
   enum AreaReferenceType {
     //! The area tool windows has been added to most recently.
     LastUsedArea,
@@ -116,7 +117,7 @@ public:
   };
 
   /*!
-   * \brief The AreaReference class represents a place where tool window shold be moved.
+   * \brief The AreaReference class represents a place where tool windows should be moved.
    */
   class AreaReference {
   public:

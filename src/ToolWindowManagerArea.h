@@ -37,7 +37,9 @@ class ToolWindowManager;
 class ToolWindowManagerArea : public QTabWidget {
   Q_OBJECT
 public:
+  //! Creates new area.
   explicit ToolWindowManagerArea(ToolWindowManager* manager, QWidget *parent = 0);
+  //! Destroys the area.
   virtual ~ToolWindowManagerArea();
 
   /*!
@@ -56,9 +58,13 @@ public:
   QList<QWidget*> toolWindows();
 
 protected:
+  //! Reimplemented from QTabWidget::mousePressEvent.
   virtual void mousePressEvent(QMouseEvent *);
+  //! Reimplemented from QTabWidget::mouseReleaseEvent.
   virtual void mouseReleaseEvent(QMouseEvent *);
+  //! Reimplemented from QTabWidget::mouseMoveEvent.
   virtual void mouseMoveEvent(QMouseEvent *);
+  //! Reimplemented from QTabWidget::eventFilter.
   virtual bool eventFilter(QObject *object, QEvent *event);
 
 private:

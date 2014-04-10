@@ -39,11 +39,13 @@ class ToolWindowManager;
 class ToolWindowManagerWrapper : public QWidget {
   Q_OBJECT
 public:
+  //! Creates new wrapper.
   explicit ToolWindowManagerWrapper(ToolWindowManager* manager);
+  //! Removes the wrapper.
   virtual ~ToolWindowManagerWrapper();
 
 protected:
-  //reimplemented to register hiding of contained tool windows when user closes the floating window
+  //! Reimplemented to register hiding of contained tool windows when user closes the floating window.
   virtual void closeEvent(QCloseEvent *);
 
 private:

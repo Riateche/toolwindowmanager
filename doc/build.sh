@@ -1,6 +1,6 @@
 #!/bin/bash
 doxygen
-mv html/class_tool_window_manager.html html/class_tool_window_manager-members.html .
+mv html/class_tool_window_manager*.html .
 rm -r html
 
 
