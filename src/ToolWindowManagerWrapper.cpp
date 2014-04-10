@@ -1,3 +1,27 @@
+/*
+ * The MIT License (MIT)
+ *
+ * Copyright (c) 2014 Pavel Strakhov
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
 #include "ToolWindowManagerWrapper.h"
 #include "ToolWindowManager.h"
 #include "ToolWindowManagerArea.h"
@@ -11,7 +35,6 @@ ToolWindowManagerWrapper::ToolWindowManagerWrapper(ToolWindowManager *manager) :
   QWidget(manager)
 , m_manager(manager)
 {
-  setAcceptDrops(true);
   setWindowFlags(windowFlags() | Qt::Tool);
   setWindowTitle(" ");
 
@@ -23,46 +46,6 @@ ToolWindowManagerWrapper::ToolWindowManagerWrapper(ToolWindowManager *manager) :
 ToolWindowManagerWrapper::~ToolWindowManagerWrapper() {
   m_manager->m_wrappers.removeOne(this);
 }
-
-/*
-void ToolWindowManagerWrapper::dragEnterEvent(QDragEnterEvent *event) {
-  if (event->mimeData()->formats().contains(m_manager->m_dragMimeType)) {
-    event->accept();
-  }
-}
-
-void ToolWindowManagerWrapper::dragMoveEvent(QDragMoveEvent *event) {
-  m_manager->findSuggestions(this);
-
-  if (!m_manager->m_suggestions.isEmpty()) {
-    //starting or restarting timer
-    if (m_manager->m_dropSuggestionSwitchTimer.isActive()) {
-      m_manager->m_dropSuggestionSwitchTimer.stop();
-    }
-    m_manager->m_dropSuggestionSwitchTimer.start();
-  }
-  event->setAccepted(!m_manager->m_suggestions.isEmpty());
-
-}
-
-void ToolWindowManagerWrapper::dragLeaveEvent(QDragLeaveEvent *) {
-  if (!rect().contains(mapFromGlobal(QCursor::pos()))) {
-    m_manager->hidePlaceHolder();
-  }
-}
-
-void ToolWindowManagerWrapper::dropEvent(QDropEvent *event) {
-  if (m_manager->m_dropCurrentSuggestionIndex >= m_manager->m_suggestions.count()) {
-    qWarning("unexpected drop event");
-    return;
-  }
-  ToolWindowManager::AreaReference suggestion = m_manager->m_suggestions[m_manager->m_dropCurrentSuggestionIndex];
-  QList<QWidget*> toolWindows = m_manager->extractToolWindowsFromDropEvent(event);
-  m_manager->hidePlaceHolder();
-  event->acceptProposedAction();
-  m_manager->moveToolWindows(toolWindows, suggestion);
-}
-*/
 
 void ToolWindowManagerWrapper::closeEvent(QCloseEvent *) {
   QList<QWidget*> toolWindows;

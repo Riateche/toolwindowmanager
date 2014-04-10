@@ -65,14 +65,6 @@ class ToolWindowManager : public QWidget {
    */
   Q_PROPERTY(int suggestionSwitchInterval READ suggestionSwitchInterval WRITE setSuggestionSwitchInterval)
   /*!
-   * \brief The mime type used for dragding tool windows.
-   *
-   * Default value is "application/x-tool-window-ids".
-   *
-   * Access functions: dragMimeType, setDragMimeType.
-   */
-  Q_PROPERTY(QString dragMimeType READ dragMimeType WRITE setDragMimeType)
-  /*!
    * \brief Maximal distance in pixels between mouse position and area border that allows
    * to display a suggestion.
    *
@@ -84,7 +76,7 @@ class ToolWindowManager : public QWidget {
   /*!
    * \brief Visible width of rubber band line that is used to display drop suggestions.
    *
-   * Default value is 4.
+   * Default value is the same as QSplitter::handleWidth default value on current platform.
    *
    * Access functions: rubberBandLineWidth, setRubberBandLineWidth.
    *
@@ -103,21 +95,39 @@ public:
   virtual ~ToolWindowManager();
 
   enum AreaReferenceType {
+    //! The area tool windows has been added to most recently.
     LastUsedArea,
+    //! New area in a detached window.
     NewFloatingArea,
+    //! Area inside the manager widget (only available when there is no tool windows in it).
     EmptySpace,
+    //! Tool window is hidden.
     NoArea,
+    //! Existing area specified in AreaReference argument.
     AddTo,
+    //! New area to the left of the area specified in AreaReference argument.
     LeftOf,
+    //! New area to the right of the area specified in AreaReference argument.
     RightOf,
+    //! New area to the top of the area specified in AreaReference argument.
     TopOf,
+    //! New area to the bottom of the area specified in AreaReference argument.
     BottomOf
   };
 
+  /*!
+   * \brief The AreaReference class represents a place where tool window shold be moved.
+   */
   class AreaReference {
   public:
+    /*!
+     * Creates an area reference of the given \a type. If \a type requires specifying
+     * area, it should be given in \a area argument. Otherwise \a area should have default value (0).
+     */
     AreaReference(AreaReferenceType type = NoArea, ToolWindowManagerArea* area = 0);
+    //! Returns type of the reference.
     AreaReferenceType type() const { return m_type; }
+    //! Returns area of the reference, or 0 if it was not specified.
     ToolWindowManagerArea* area() const;
 
   private:
@@ -131,53 +141,68 @@ public:
 
   };
 
+  /*!
+   * Adds \a toolWindow to the manager and moves it to the position specified by
+   * \a area. This function is a shortcut for ToolWindowManager::addToolWindows.
+   */
+  void addToolWindow(QWidget* toolWindow, const AreaReference& area);
 
   /*!
-   * \brief Adds \a toolWindow to the manager and moves it to the position specified by \a dockArea.
-   * The manager takes ownership of the tool window and will delete it upon destruction.
+   * \brief Adds \a toolWindows to the manager and moves it to the position specified by
+   * \a area.
+   * The manager takes ownership of the tool windows and will delete them upon destruction.
    *
    * toolWindow->windowIcon() and toolWindow->windowTitle() will be used as the icon and title
    * of the tab that represents the tool window.
    *
    * If you intend to use ToolWindowManager::saveState
-   * and ToolWindowManager::restoreState functions, you must set toolWindow->objectName() to
-   * a non-empty unique string.
+   * and ToolWindowManager::restoreState functions, you must set objectName() of each added
+   * tool window to a non-empty unique string.
    */
-  void addToolWindow(QWidget* toolWindow, const AreaReference& area);
-
   void addToolWindows(QList<QWidget*> toolWindows, const AreaReference& area);
 
+  /*!
+   * Returns area that contains \a toolWindow, or 0 if \a toolWindow is hidden.
+   */
   ToolWindowManagerArea* areaOf(QWidget* toolWindow);
 
   /*!
-   * \brief Moves \a toolWindow to the position specified by \a dockArea.
+   * \brief Moves \a toolWindow to the position specified by \a area.
    *
    * \a toolWindow must be added to the manager prior to calling this function.
    */
   void moveToolWindow(QWidget* toolWindow, AreaReference area);
 
+  /*!
+   * \brief Moves \a toolWindows to the position specified by \a area.
+   *
+   * \a toolWindows must be added to the manager prior to calling this function.
+   */
   void moveToolWindows(QList<QWidget*> toolWindows, AreaReference area);
-
 
   /*!
    * \brief Removes \a toolWindow from the manager. \a toolWindow becomes a hidden
    * top level widget. The ownership of \a toolWindow is returned to the caller.
    */
   void removeToolWindow(QWidget* toolWindow);
+
   /*!
    * \brief Returns all tool window added to the manager.
    */
   const QList<QWidget*>& toolWindows() { return m_toolWindows; }
+
   /*!
    * Hides \a toolWindow.
    *
    * \a toolWindow must be added to the manager prior to calling this function.
    */
   void hideToolWindow(QWidget* toolWindow) { moveToolWindow(toolWindow, NoArea); }
+
   /*!
    * \brief saveState
    */
   QVariant saveState();
+
   /*!
    * \brief restoreState
    */
@@ -187,16 +212,21 @@ public:
   /*! \cond PRIVATE */
   void setSuggestionSwitchInterval(int msec);
   int suggestionSwitchInterval();
-  void setDragMimeType(const QString& mimeType);
-  const QString& dragMimeType() { return m_dragMimeType; }
   int borderSensitivity() { return m_borderSensitivity; }
   void setBorderSensitivity(int pixels);
   void setRubberBandLineWidth(int pixels);
   int rubberBandLineWidth() { return m_rubberBandLineWidth; }
   /*! \endcond */
 
-  QRubberBand* rectRubberBand() { return m_rectPlaceHolder; }
-  QRubberBand* lineRubberBand() { return m_linePlaceHolder; }
+  /*!
+   * Returns the widget that is used to display rectangular drop suggestions.
+   */
+  QRubberBand* rectRubberBand() { return m_rectRubberBand; }
+
+  /*!
+   * Returns the widget that is used to display line drop suggestions.
+   */
+  QRubberBand* lineRubberBand() { return m_lineRubberBand; }
 
 
 signals:
@@ -208,19 +238,17 @@ signals:
 
 private:
   QList<QWidget*> m_toolWindows; // all added tool windows
-  QList<ToolWindowManagerArea*> m_areas;
-  QList<ToolWindowManagerWrapper*> m_wrappers;
+  QList<ToolWindowManagerArea*> m_areas; // all areas for this manager
+  QList<ToolWindowManagerWrapper*> m_wrappers; // all wrappers for this manager
   int m_borderSensitivity;
   int m_rubberBandLineWidth;
-  QString m_dragMimeType;
-  //QWidget* m_detachTarget;
-  //bool m_dragInProgress;
+  // list of tool windows that are currently dragged, or empty list if there is no current drag
   QList<QWidget*> m_draggedToolWindows;
-  QLabel* m_dragIndicator;
+  QLabel* m_dragIndicator; // label used to display dragged content
 
-  QRubberBand* m_rectPlaceHolder; // placeholder objects used for displaying drop suggestions
-  QRubberBand* m_linePlaceHolder;
-  QList<AreaReference> m_suggestions;
+  QRubberBand* m_rectRubberBand; // placeholder objects used for displaying drop suggestions
+  QRubberBand* m_lineRubberBand;
+  QList<AreaReference> m_suggestions; //full list of suggestions for current cursor position
   int m_dropCurrentSuggestionIndex; // index of currently displayed drop suggestion
                                     // (e.g. always 0 if there is only one possible drop location)
   QTimer m_dropSuggestionSwitchTimer; // used for switching drop suggestions
@@ -228,38 +256,26 @@ private:
   // last widget used for adding tool windows, or 0 if there isn't one
   // (warning: may contain pointer to deleted object)
   ToolWindowManagerArea* m_lastUsedArea;
-  QSplitter *createDockItem(const QList<QWidget*>& toolWindows, Qt::Orientations parentOrientation);
-  void hidePlaceHolder();
+  void handleNoSuggestions();
+  //remove tool window from its area (if any) and set parent to 0
   void releaseToolWindow(QWidget* toolWindow);
-  void deleteAllEmptyItems();
-  void deleteEmptyItems(ToolWindowManagerArea* tabWidget);
-  QWidget* wrapTopLevelSplitter(QSplitter* splitter);
+  void simplifyLayout(); //remove constructions that became useless
   void startDrag(const QList<QWidget*>& toolWindows);
 
   QVariantMap saveSplitterState(QSplitter* splitter);
   QSplitter* restoreSplitterState(const QVariantMap& data);
-
-  void addMissingSplitters(QSplitter* splitter);
-  friend class ToolWindowManagerArea;
-  friend class ToolWindowManagerWrapper;
-
   void findSuggestions(ToolWindowManagerWrapper *wrapper);
-
   QRect sideSensitiveArea(QWidget* widget, AreaReferenceType side);
   QRect sidePlaceHolderRect(QWidget* widget, AreaReferenceType side);
-
-  QList<QWidget*> extractToolWindowsFromDropEvent(QDropEvent* event);
 
   void updateDragPosition();
   void finishDrag();
   bool dragInProgress() { return !m_draggedToolWindows.isEmpty(); }
 
+  friend class ToolWindowManagerArea;
+  friend class ToolWindowManagerWrapper;
 
 protected:
-  /* !
-   * \brief Reimplemented from QWidget::eventFilter.
-   */
-  //virtual bool eventFilter(QObject *object, QEvent *event);
   /*!
    * \brief Creates new splitter and sets its default properties. You may reimplement
    * this function to change properties of all splitters used by this class.
@@ -278,7 +294,7 @@ protected:
   virtual QPixmap generateDragPixmap(const QList<QWidget *> &toolWindows);
 
 private slots:
-  void dropSuggestionSwitchTimeout();
+  void showNextDropSuggestion();
   void tabCloseRequested(int index);
 
 };
