@@ -50,12 +50,15 @@ T findClosestParent(QWidget* widget) {
 ToolWindowManager::ToolWindowManager(QWidget *parent) :
   QWidget(parent)
 {
-  m_detachTarget = 0;
+  //m_detachTarget = 0;
   m_borderSensitivity = 12;
+  //m_dragInProgress = false;
   m_dragMimeType = "application/x-tool-window-ids";
   QSplitter* testSplitter = new QSplitter();
   m_rubberBandLineWidth = testSplitter->handleWidth();
   delete testSplitter;
+  m_dragIndicator = new QLabel(0, Qt::ToolTip );
+  m_dragIndicator->setAttribute(Qt::WA_ShowWithoutActivating);
   QVBoxLayout* mainLayout = new QVBoxLayout(this);
   mainLayout->setContentsMargins(0, 0, 0, 0);
   ToolWindowManagerWrapper* wrapper = new ToolWindowManagerWrapper(this);
@@ -367,9 +370,15 @@ void ToolWindowManager::deleteEmptyItems(ToolWindowManagerArea *area) {
   }
 }
 
-void ToolWindowManager::execDrag(const QList<QWidget *> &toolWindows) {
+void ToolWindowManager::startDrag(const QList<QWidget *> &toolWindows) {
+  if (dragInProgress()) {
+    qWarning("ToolWindowManager::execDrag: drag is already in progress");
+    return;
+  }
+  //m_dragInProgress = true;
   if (toolWindows.isEmpty()) { return; }
-  QStringList ids;
+  m_draggedToolWindows = toolWindows;
+  /*QStringList ids;
   foreach(QWidget* toolWindow, toolWindows) {
     ids << QString::number(m_toolWindows.indexOf(toolWindow));
   }
@@ -383,14 +392,17 @@ void ToolWindowManager::execDrag(const QList<QWidget *> &toolWindows) {
   m_detachTarget->setWindowOpacity(0.1);
   activateWindow();
   topLevelWidget()->raise();
-  QDrag* drag = new QDrag(this);
+  //QDrag* drag = new QDrag(this);
   QMimeData* mimeData = new QMimeData();
   mimeData->setData(m_dragMimeType, ids.join(";").toLatin1());
-  drag->setMimeData(mimeData);
-  drag->setPixmap(generateDragPixmap(toolWindows));
-  drag->exec(Qt::MoveAction);
-  delete m_detachTarget;
-  m_detachTarget = 0;
+  //drag->setMimeData(mimeData);
+  //drag->setPixmap(generateDragPixmap(toolWindows));
+  //drag->exec(Qt::MoveAction); */
+  m_dragIndicator->setPixmap(generateDragPixmap(toolWindows));
+  updateDragPosition();
+  m_dragIndicator->show();
+  //delete m_detachTarget;
+  //m_detachTarget = 0;
 }
 
 QVariantMap ToolWindowManager::saveSplitterState(QSplitter *splitter) {
@@ -647,6 +659,59 @@ QList<QWidget *> ToolWindowManager::extractToolWindowsFromDropEvent(QDropEvent *
   return toolWindows;
 }
 
+void ToolWindowManager::updateDragPosition() {
+  if (!dragInProgress()) { return; }
+  if (!(qApp->mouseButtons() & Qt::LeftButton)) {
+    finishDrag();
+    return;
+  }
+
+  QPoint pos = QCursor::pos();
+  m_dragIndicator->move(pos + QPoint(0,0));
+  bool foundWrapper = false;
+  foreach(ToolWindowManagerWrapper* wrapper, m_wrappers) {
+    if (wrapper->rect().contains(wrapper->mapFromGlobal(pos))) {
+      findSuggestions(wrapper);
+      if (!m_suggestions.isEmpty()) {
+        //starting or restarting timer
+        if (m_dropSuggestionSwitchTimer.isActive()) {
+          m_dropSuggestionSwitchTimer.stop();
+        }
+        m_dropSuggestionSwitchTimer.start();
+        foundWrapper = true;
+        break;
+      }
+    }
+  }
+  if (!foundWrapper) {
+    hidePlaceHolder();
+  }
+}
+
+void ToolWindowManager::finishDrag() {
+  if (!dragInProgress()) {
+    qWarning("unexpected finishDrag");
+    return;
+  }
+  if (m_suggestions.isEmpty()) {
+    moveToolWindows(m_draggedToolWindows, NewFloatingArea);
+
+  } else {
+    if (m_dropCurrentSuggestionIndex >= m_suggestions.count()) {
+      qWarning("invalid m_dropCurrentSuggestionIndex");
+      return;
+    }
+    ToolWindowManager::AreaReference suggestion = m_suggestions[m_dropCurrentSuggestionIndex];
+    hidePlaceHolder();
+    moveToolWindows(m_draggedToolWindows, suggestion);
+  }
+
+
+  m_dragIndicator->hide();
+  //m_dragInProgress = false;
+  m_draggedToolWindows.clear();
+}
+
 void ToolWindowManager::tabCloseRequested(int index) {
   ToolWindowManagerArea* tabWidget = qobject_cast<ToolWindowManagerArea*>(sender());
   if (!tabWidget) {
@@ -661,22 +726,9 @@ void ToolWindowManager::tabCloseRequested(int index) {
   hideToolWindow(toolWindow);
 }
 
-bool ToolWindowManager::eventFilter(QObject* object, QEvent* event) {
-  if (object == m_detachTarget) {
-    if (event->type() == QEvent::DragEnter) {
-      if (static_cast<QDragEnterEvent*>(event)->mimeData()->formats().contains(m_dragMimeType)) {
-        event->accept();
-      }
-    } else if (event->type() == QEvent::DragMove) {
-      event->accept();
-    } else if (event->type() == QEvent::Drop) {
-      static_cast<QDropEvent*>(event)->acceptProposedAction();
-      moveToolWindows(extractToolWindowsFromDropEvent(static_cast<QDropEvent*>(event)),
-                      NewFloatingArea);
-    }
-  }
-  return false;
-}
+//bool ToolWindowManager::eventFilter(QObject* object, QEvent* event) {
+//  return false;
+//}
 
 QSplitter *ToolWindowManager::createSplitter() {
   QSplitter* splitter = new QSplitter();

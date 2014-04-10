@@ -24,7 +24,7 @@ ToolWindowManagerWrapper::~ToolWindowManagerWrapper() {
   m_manager->m_wrappers.removeOne(this);
 }
 
-
+/*
 void ToolWindowManagerWrapper::dragEnterEvent(QDragEnterEvent *event) {
   if (event->mimeData()->formats().contains(m_manager->m_dragMimeType)) {
     event->accept();
@@ -62,7 +62,7 @@ void ToolWindowManagerWrapper::dropEvent(QDropEvent *event) {
   event->acceptProposedAction();
   m_manager->moveToolWindows(toolWindows, suggestion);
 }
-
+*/
 
 void ToolWindowManagerWrapper::closeEvent(QCloseEvent *) {
   QList<QWidget*> toolWindows;

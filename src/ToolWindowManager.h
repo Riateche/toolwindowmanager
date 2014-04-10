@@ -213,7 +213,10 @@ private:
   int m_borderSensitivity;
   int m_rubberBandLineWidth;
   QString m_dragMimeType;
-  QWidget* m_detachTarget;
+  //QWidget* m_detachTarget;
+  //bool m_dragInProgress;
+  QList<QWidget*> m_draggedToolWindows;
+  QLabel* m_dragIndicator;
 
   QRubberBand* m_rectPlaceHolder; // placeholder objects used for displaying drop suggestions
   QRubberBand* m_linePlaceHolder;
@@ -231,7 +234,7 @@ private:
   void deleteAllEmptyItems();
   void deleteEmptyItems(ToolWindowManagerArea* tabWidget);
   QWidget* wrapTopLevelSplitter(QSplitter* splitter);
-  void execDrag(const QList<QWidget*>& toolWindows);
+  void startDrag(const QList<QWidget*>& toolWindows);
 
   QVariantMap saveSplitterState(QSplitter* splitter);
   QSplitter* restoreSplitterState(const QVariantMap& data);
@@ -247,12 +250,16 @@ private:
 
   QList<QWidget*> extractToolWindowsFromDropEvent(QDropEvent* event);
 
+  void updateDragPosition();
+  void finishDrag();
+  bool dragInProgress() { return !m_draggedToolWindows.isEmpty(); }
+
 
 protected:
-  /*!
+  /* !
    * \brief Reimplemented from QWidget::eventFilter.
    */
-  virtual bool eventFilter(QObject *object, QEvent *event);
+  //virtual bool eventFilter(QObject *object, QEvent *event);
   /*!
    * \brief Creates new splitter and sets its default properties. You may reimplement
    * this function to change properties of all splitters used by this class.

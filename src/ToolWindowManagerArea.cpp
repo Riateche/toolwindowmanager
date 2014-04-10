@@ -50,6 +50,7 @@ void ToolWindowManagerArea::mousePressEvent(QMouseEvent *) {
 
 void ToolWindowManagerArea::mouseReleaseEvent(QMouseEvent *) {
   m_dragCanStart = false;
+  m_manager->updateDragPosition();
 }
 
 void ToolWindowManagerArea::mouseMoveEvent(QMouseEvent *) {
@@ -69,7 +70,9 @@ bool ToolWindowManagerArea::eventFilter(QObject *object, QEvent *event) {
     } else if (event->type() == QEvent::MouseButtonRelease) {
       m_tabDragCanStart = false;
       m_dragCanStart = false;
+      m_manager->updateDragPosition();
     } else if (event->type() == QEvent::MouseMove) {
+      m_manager->updateDragPosition();
       if (m_tabDragCanStart) {
         if (tabBar()->rect().contains(static_cast<QMouseEvent*>(event)->pos())) {
           return false;
@@ -86,7 +89,7 @@ bool ToolWindowManagerArea::eventFilter(QObject *object, QEvent *event) {
                                                     static_cast<QMouseEvent*>(event)->pos(),
                                                     Qt::LeftButton, Qt::LeftButton, 0);
         qApp->sendEvent(tabBar(), releaseEvent);
-        m_manager->execDrag(QList<QWidget*>() << toolWindow);
+        m_manager->startDrag(QList<QWidget*>() << toolWindow);
       } else if (m_dragCanStart) {
         check_mouse_move();
       }
@@ -132,6 +135,7 @@ void ToolWindowManagerArea::restoreState(const QVariantMap &data) {
 }
 
 void ToolWindowManagerArea::check_mouse_move() {
+  m_manager->updateDragPosition();
   if (qApp->mouseButtons() == Qt::LeftButton &&
       !rect().contains(mapFromGlobal(QCursor::pos())) &&
       m_dragCanStart) {
@@ -145,6 +149,6 @@ void ToolWindowManagerArea::check_mouse_move() {
         toolWindows << toolWindow;
       }
     }
-    m_manager->execDrag(toolWindows);
+    m_manager->startDrag(toolWindows);
   }
 }

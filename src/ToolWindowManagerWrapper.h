@@ -13,10 +13,11 @@ public:
   virtual ~ToolWindowManagerWrapper();
 
 protected:
+  /*
   virtual void dragEnterEvent(QDragEnterEvent *);
   virtual void dragMoveEvent(QDragMoveEvent *);
   virtual void dragLeaveEvent(QDragLeaveEvent *);
-  virtual void dropEvent(QDropEvent *);
+  virtual void dropEvent(QDropEvent *); */
   virtual void closeEvent(QCloseEvent *);
 
 private:
