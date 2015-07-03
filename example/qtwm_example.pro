@@ -6,6 +6,6 @@ SOURCES       = toolwindowmanager.cpp \
 
 FORMS         = toolwindowmanager.ui
 
-LIBS += -lqtoolwindowmanager -L../build-qtoolwindowmanager
+LIBS += -lqtoolwindowmanager -L../build-libqtoolwindowmanager
 
-INCLUDEPATH += ../qtoolwindowmanager
+INCLUDEPATH += ../libqtoolwindowmanager
