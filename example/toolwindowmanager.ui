@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>ToolWindowManager</class>
+ <widget class="QMainWindow" name="ToolWindowManager">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>400</width>
+    <height>300</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>ToolWindowManager</string>
+  </property>
+  <widget class="QWidget" name="centralWidget">
+   <layout class="QVBoxLayout" name="verticalLayout">
+    <property name="leftMargin">
+     <number>0</number>
+    </property>
+    <property name="topMargin">
+     <number>0</number>
+    </property>
+    <property name="rightMargin">
+     <number>0</number>
+    </property>
+    <property name="bottomMargin">
+     <number>0</number>
+    </property>
+    <item>
+     <widget class="QToolWindowManager" name="toolWindowManager" native="true"/>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QMenuBar" name="menuBar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>400</width>
+     <height>22</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menuToolWindows">
+    <property name="title">
+     <string>Tool windows</string>
+    </property>
+   </widget>
+   <widget class="QMenu" name="menuOptions">
+    <property name="title">
+     <string>Storage</string>
+    </property>
+    <addaction name="actionSaveState"/>
+    <addaction name="actionRestoreState"/>
+    <addaction name="actionClearState"/>
+   </widget>
+   <addaction name="menuToolWindows"/>
+   <addaction name="menuOptions"/>
+  </widget>
+  <widget class="QStatusBar" name="statusBar"/>
+  <action name="actionSaveState">
+   <property name="text">
+    <string>Save state</string>
+   </property>
+  </action>
+  <action name="actionRestoreState">
+   <property name="text">
+    <string>Restore state</string>
+   </property>
+  </action>
+  <action name="actionClearState">
+   <property name="text">
+    <string>Clear state and exit</string>
+   </property>
+  </action>
+ </widget>
+ <layoutdefault spacing="6" margin="11"/>
+ <customwidgets>
+  <customwidget>
+   <class>QToolWindowManager</class>
+   <extends>QWidget</extends>
+   <header>qtoolwindowmanager.h</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections/>
+</ui>
