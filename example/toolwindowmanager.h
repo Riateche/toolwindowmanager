@@ -58,16 +58,32 @@
 **
 ****************************************************************************/
 
-#include <QApplication>
+#ifndef TOOLWINDOWMANAGER_H
+#define TOOLWINDOWMANAGER_H
 
-#include "toolwindowmanager.h"
+#include <QMainWindow>
 
-int main(int argc, char *argv[])
-{
-    QApplication app(argc, argv);
-    app.setOrganizationName("QtProject");
-    app.setApplicationName("ToolWindowManagerTest");
-    ToolWindowManager manager;
-    manager.show();
-    return app.exec();
+namespace Ui {
+class ToolWindowManager;
 }
+
+class ToolWindowManager : public QMainWindow
+{
+    Q_OBJECT
+public:
+    explicit ToolWindowManager(QWidget *parent = 0);
+    ~ToolWindowManager();
+
+private:
+    Ui::ToolWindowManager *ui;
+    QList<QAction*> actions;
+
+private slots:
+    void toolWindowActionToggled(bool state);
+    void toolWindowVisibilityChanged(QWidget *toolWindow, bool visible);
+    void on_actionSaveState_triggered();
+    void on_actionRestoreState_triggered();
+    void on_actionClearState_triggered();
+};
+
+#endif

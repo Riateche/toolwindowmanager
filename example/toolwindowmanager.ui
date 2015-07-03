@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>MainWindow</class>
- <widget class="QMainWindow" name="MainWindow">
+ <class>ToolWindowManager</class>
+ <widget class="QMainWindow" name="ToolWindowManager">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>MainWindow</string>
+   <string>ToolWindowManager</string>
   </property>
   <widget class="QWidget" name="centralWidget">
    <layout class="QVBoxLayout" name="verticalLayout">
@@ -28,7 +28,7 @@
      <number>0</number>
     </property>
     <item>
-     <widget class="ToolWindowManager" name="toolWindowManager" native="true"/>
+     <widget class="QToolWindowManager" name="toolWindowManager" native="true"/>
     </item>
    </layout>
   </widget>
@@ -77,9 +77,9 @@
  <layoutdefault spacing="6" margin="11"/>
  <customwidgets>
   <customwidget>
-   <class>ToolWindowManager</class>
+   <class>QToolWindowManager</class>
    <extends>QWidget</extends>
-   <header>ToolWindowManager.h</header>
+   <header>qtoolwindowmanager.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>
