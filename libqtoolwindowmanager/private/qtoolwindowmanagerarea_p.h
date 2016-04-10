@@ -62,7 +62,13 @@
 #ifndef QTOOLWINDOWMANAGERAREA_H
 #define QTOOLWINDOWMANAGERAREA_H
 
+#include <QtGlobal>
+#if QT_VERSION >= 0x050000
 #include <QtWidgets/qtabwidget.h>
+#else
+#include <QtGui/qtabwidget.h>
+#endif
+
 #include <QtCore/qvariant.h>
 #include "qabstracttoolwindowmanagerarea.h"
 

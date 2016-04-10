@@ -75,6 +75,7 @@ QT_BEGIN_NAMESPACE
 #include <qapplication.h>
 #include <qevent.h>
 #include <qpainter.h>
+#include <qrubberband.h>
 #include <private/qtoolwindowmanagerarea_p.h>
 #include <private/qtoolwindowmanagerwrapper_p.h>
 #include <private/qtoolwindowmanager_p.h>
@@ -821,7 +822,11 @@ QPixmap QToolWindowManager::generateDragPixmap(const QList<QWidget *> &toolWindo
     foreach (QWidget *toolWindow, toolWindows) {
         widget.addTab(toolWindow->windowIcon(), toolWindow->windowTitle());
     }
-    return widget.grab();
+    #if QT_VERSION >= 0x050000 // Qt5
+        return widget.grab();
+    #else //Qt4
+        return QPixmap::grabWidget(&widget);
+    #endif
 }
 
 void QToolWindowManagerPrivate::showNextDropSuggestion()

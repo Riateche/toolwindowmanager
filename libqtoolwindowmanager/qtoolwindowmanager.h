@@ -70,10 +70,17 @@
  #define QTOOLWINDOWMANAGER_EXPORT Q_DECL_IMPORT
 #endif
 
-#include <QtWidgets/qwidget.h>
 #include <QtCore/qtimer.h>
-#include <QtWidgets/qrubberband.h>
 #include <QtCore/qvariant.h>
+
+#include <QtGlobal>
+#if QT_VERSION >= 0x050000
+#include <QtWidgets/qwidget.h>
+#else
+#include <QtGui/qwidget.h>
+#endif
+
+
 
 QT_BEGIN_NAMESPACE
 
@@ -82,6 +89,7 @@ QT_BEGIN_NAMESPACE
 class QAbstractToolWindowManagerArea;
 class QToolWindowManagerPrivate;
 class QSplitter;
+class QRubberBand;
 
 class QTOOLWINDOWMANAGER_EXPORT QToolWindowManager : public QWidget
 {

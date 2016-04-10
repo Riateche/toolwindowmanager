@@ -58,7 +58,12 @@
 **
 ****************************************************************************/
 
+#include <QtGlobal>
+#if QT_VERSION >= 0x050000
 #include <QtWidgets>
+#else
+#include <QtGui>
+#endif
 
 #include "toolwindowmanager.h"
 #include "ui_toolwindowmanager.h"

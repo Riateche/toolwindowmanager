@@ -71,6 +71,14 @@ QT_BEGIN_NAMESPACE
 
 #ifndef QT_NO_TOOLWINDOWMANAGER
 
+#if QT_VERSION < 0x050000
+class TweakedTabWidget : public QTabWidget {
+public:
+  QTabBar * tabBar() const { return QTabWidget::tabBar(); }
+};
+
+#endif
+
 QToolWindowManagerArea::QToolWindowManagerArea(QToolWindowManager *manager) :
     QAbstractToolWindowManagerArea(manager)
 {
@@ -78,7 +86,11 @@ QToolWindowManagerArea::QToolWindowManagerArea(QToolWindowManager *manager) :
     d_ptr->q_ptr = this;
     Q_D(QToolWindowManagerArea);
     d->m_manager = manager;
+#if QT_VERSION >= 0x050000
     d->m_tabWidget = new QTabWidget();
+#else
+    d->m_tabWidget = new TweakedTabWidget();
+#endif
     d->slots_object.d = d;
     connect(d->m_tabWidget, SIGNAL(tabCloseRequested(int)),
             &(d->slots_object), SLOT(tabCloseRequested(int)));

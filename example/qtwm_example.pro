@@ -1,4 +1,8 @@
-QT += widgets
+lessThan(QT_MAJOR_VERSION, 5) {
+  QT += gui
+} else {
+  QT += widgets
+}
 
 HEADERS       = toolwindowmanager.h
 SOURCES       = toolwindowmanager.cpp \

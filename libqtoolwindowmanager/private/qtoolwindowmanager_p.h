@@ -62,7 +62,12 @@
 #ifndef QTOOLWINDOWMANAGER_P_H
 #define QTOOLWINDOWMANAGER_P_H
 
+#include <QtGlobal>
+#if QT_VERSION >= 0x050000
 #include <QtWidgets/qwidget.h>
+#else
+#include <QtGui/qwidget.h>
+#endif
 #include <qtoolwindowmanager.h>
 #include <private/qtoolwindowmanagerarea_p.h>
 
@@ -177,12 +182,21 @@ public Q_SLOTS:
     void tabCloseRequested(int index);
 };
 
+#if QT_VERSION < 0x050000
+class TweakedTabWidget;
+#endif
+
 class QToolWindowManagerAreaPrivate
 {
     Q_DECLARE_PUBLIC(QToolWindowManagerArea)
 public:
     QToolWindowManager *m_manager;
+
+#if QT_VERSION >= 0x050000
     QTabWidget *m_tabWidget;
+#else
+    TweakedTabWidget *m_tabWidget;
+#endif
     // indicates that user has started mouse movement on QTabWidget
     // that can be considered as dragging it if the cursor will leave
     // its area

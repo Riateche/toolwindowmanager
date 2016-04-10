@@ -62,7 +62,14 @@
 #ifndef QTOOLWINDOWMANAGERWRAPPER_P_H
 #define QTOOLWINDOWMANAGERWRAPPER_P_H
 
+#include <QtGlobal>
+#if QT_VERSION >= 0x050000
 #include <QtWidgets/qwidget.h>
+#else
+#include <QtGui/qwidget.h>
+#define Q_DECL_OVERRIDE
+#endif
+
 #include <QtCore/qvariant.h>
 
 QT_BEGIN_NAMESPACE
