@@ -100,15 +100,15 @@ ToolWindowManager::ToolWindowManager(QWidget *parent) :
 
     QToolButton* tabButton1 = new QToolButton();
     tabButton1->setText(tr("t1"));
+    ui->toolWindowManager->setTabButton(toolWindows[2], QTabBar::LeftSide, tabButton1);
 
     QToolButton* tabButton2 = new QToolButton();
     tabButton2->setText(tr("t2"));
     QWidget* tabButton2WithLabel = new QWidget();
-
     QHBoxLayout* layout = new QHBoxLayout(tabButton2WithLabel);
+    layout->setMargin(0);
     layout->addWidget(new QLabel(tr("Custom label")));
     layout->addWidget(tabButton2);
-    ui->toolWindowManager->setTabButton(toolWindows[2], QTabBar::LeftSide, tabButton1);
     ui->toolWindowManager->setTabButton(toolWindows[3], QTabBar::LeftSide, tabButton2WithLabel);
     toolWindows[3]->setWindowTitle("");
 

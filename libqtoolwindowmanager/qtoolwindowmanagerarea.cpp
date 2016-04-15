@@ -175,6 +175,12 @@ bool QToolWindowManagerArea::eventFilter(QObject *object, QEvent *event)
             break;
         }
     }
+    if (event->type() == QEvent::WindowTitleChange) {
+        int index = d->m_tabWidget->indexOf(static_cast<QWidget*>(object));
+        if (index >= 0) {
+            d->m_tabWidget->setTabText(index, d->m_tabWidget->widget(index)->windowTitle());
+        }
+    }
     return QAbstractToolWindowManagerArea::eventFilter(object, event);
 }
 
@@ -271,6 +277,7 @@ void QToolWindowManagerArea::addToolWindows(const QWidgetList &toolWindows)
     foreach (QWidget *toolWindow, toolWindows) {
         index = d->m_tabWidget->addTab(toolWindow, toolWindow->windowIcon(), toolWindow->windowTitle());
         applyTabButtons(toolWindow);
+        toolWindow->installEventFilter(this);
     }
     d->m_tabWidget->setCurrentIndex(index);
 }
@@ -285,6 +292,7 @@ void QToolWindowManagerArea::removeToolWindow(QWidget *toolWindow)
     }
     releaseTabButtons(toolWindow);
     d->m_tabWidget->removeTab(index);
+    toolWindow->removeEventFilter(this);
 }
 
 QVariant QToolWindowManagerArea::saveState() const
