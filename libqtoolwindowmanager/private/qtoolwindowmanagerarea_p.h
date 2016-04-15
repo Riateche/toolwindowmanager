@@ -93,6 +93,8 @@ protected:
     void removeToolWindow(QWidget *toolWindow);
     QVariant saveState() const;
     void restoreState(const QVariant &state);
+    void beforeTabButtonChanged(QWidget *toolWindow);
+    void tabButtonChanged(QWidget *toolWindow);
 
     virtual void mousePressEvent(QMouseEvent *);
     virtual void mouseReleaseEvent(QMouseEvent *);
@@ -103,6 +105,9 @@ private:
     Q_DISABLE_COPY(QToolWindowManagerArea)
     Q_DECLARE_PRIVATE(QToolWindowManagerArea)
     QToolWindowManagerAreaPrivate* d_ptr;
+
+    void releaseTabButtons(QWidget *toolWindow);
+    void applyTabButtons(QWidget *toolWindow);
 
     friend class QToolWindowManager;
     friend class QToolWindowManagerPrivate;

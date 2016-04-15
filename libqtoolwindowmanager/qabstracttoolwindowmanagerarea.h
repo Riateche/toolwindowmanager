@@ -86,12 +86,14 @@ public:
     virtual void activateToolWindow(QWidget *toolWindow) = 0;
     //todo: add API for adding tool windows here for user
 
-
 protected:
     virtual void addToolWindows(const QWidgetList &toolWindows) = 0;
     virtual void removeToolWindow(QWidget *toolWindow) = 0;
     virtual QVariant saveState() const;
-    virtual void restoreState(const QVariant &state);
+    virtual void restoreState(const QVariant &state);    
+    virtual void beforeTabButtonChanged(QWidget *toolWindow);
+    virtual void tabButtonChanged(QWidget *toolWindow);
+
 
     void updateDragPosition();
     void startDrag(const QWidgetList &toolWindows);

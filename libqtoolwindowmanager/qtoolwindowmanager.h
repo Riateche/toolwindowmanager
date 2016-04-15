@@ -157,6 +157,8 @@ public:
     QRubberBand *rectRubberBand() const;
     QRubberBand *lineRubberBand() const;
 
+    void setTabButton(QWidget *toolWindow, QTabBar::ButtonPosition position, QWidget *widget);
+
 Q_SIGNALS:
     void toolWindowVisibilityChanged(QWidget *toolWindow, bool visible);
     void suggestionSwitchIntervalChanged(int suggestionSwitchInterval);
@@ -174,10 +176,9 @@ private:
     Q_DECLARE_PRIVATE(QToolWindowManager)
     QToolWindowManagerPrivate* d_ptr;
 
-//    friend class QAbstractToolWindowManagerArea;
-//    friend class QToolWindowManagerAreaPrivate;
     friend class QToolWindowManagerWrapper;
     friend class QAbstractToolWindowManagerArea;
+    friend class QToolWindowManagerArea;
 };
 
 #endif // QT_NO_TOOLWINDOWMANAGER

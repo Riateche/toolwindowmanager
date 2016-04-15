@@ -86,6 +86,7 @@ QToolWindowManagerArea::QToolWindowManagerArea(QToolWindowManager *manager) :
     d_ptr->q_ptr = this;
     Q_D(QToolWindowManagerArea);
     d->m_manager = manager;
+    d->m_d_manager = d->m_manager->d_func();
 #if QT_VERSION >= 0x050000
     d->m_tabWidget = new QTabWidget();
 #else
@@ -177,6 +178,52 @@ bool QToolWindowManagerArea::eventFilter(QObject *object, QEvent *event)
     return QAbstractToolWindowManagerArea::eventFilter(object, event);
 }
 
+void QToolWindowManagerArea::releaseTabButtons(QWidget* toolWindow) {
+    Q_D(QToolWindowManagerArea);
+    int index = d->m_tabWidget->indexOf(toolWindow);
+    if (index < 0) {
+        qWarning("unexpected indexOf fail");
+        return;
+    }
+    if (d->m_d_manager->m_toolWindowData[toolWindow].leftButtonWidget) {
+        d->m_tabWidget->tabBar()->setTabButton(
+              index,
+              QTabBar::LeftSide,
+              0);
+        d->m_d_manager->m_toolWindowData[toolWindow].leftButtonWidget->setParent(d->m_manager);
+    }
+    if (d->m_d_manager->m_toolWindowData[toolWindow].rightButtonWidget) {
+        d->m_tabWidget->tabBar()->setTabButton(
+              index,
+              QTabBar::RightSide,
+              0);
+        d->m_d_manager->m_toolWindowData[toolWindow].rightButtonWidget->setParent(d->m_manager);
+    }
+
+}
+
+void QToolWindowManagerArea::applyTabButtons(QWidget* toolWindow)
+{
+    Q_D(QToolWindowManagerArea);
+    int index = d->m_tabWidget->indexOf(toolWindow);
+    if (index < 0) {
+        qWarning("unexpected indexOf fail");
+        return;
+    }
+    if (d->m_d_manager->m_toolWindowData[toolWindow].leftButtonWidget) {
+        d->m_tabWidget->tabBar()->setTabButton(
+              index,
+              QTabBar::LeftSide,
+              d->m_d_manager->m_toolWindowData[toolWindow].leftButtonWidget);
+    }
+    if (d->m_d_manager->m_toolWindowData[toolWindow].rightButtonWidget) {
+        d->m_tabWidget->tabBar()->setTabButton(
+              index,
+              QTabBar::RightSide,
+              d->m_d_manager->m_toolWindowData[toolWindow].rightButtonWidget);
+    }
+}
+
 void QToolWindowManagerAreaPrivate::check_mouse_move()
 {
     Q_Q(QToolWindowManagerArea);
@@ -221,8 +268,10 @@ void QToolWindowManagerArea::addToolWindows(const QWidgetList &toolWindows)
 {
     Q_D(QToolWindowManagerArea);
     int index = 0;
-    foreach (QWidget *toolWindow, toolWindows)
+    foreach (QWidget *toolWindow, toolWindows) {
         index = d->m_tabWidget->addTab(toolWindow, toolWindow->windowIcon(), toolWindow->windowTitle());
+        applyTabButtons(toolWindow);
+    }
     d->m_tabWidget->setCurrentIndex(index);
 }
 
@@ -234,6 +283,7 @@ void QToolWindowManagerArea::removeToolWindow(QWidget *toolWindow)
         qWarning("QToolWindowManagerArea::removeToolWindow: no such tool window");
         return;
     }
+    releaseTabButtons(toolWindow);
     d->m_tabWidget->removeTab(index);
 }
 
@@ -249,4 +299,14 @@ void QToolWindowManagerArea::restoreState(const QVariant &state)
 {
     Q_D(QToolWindowManagerArea);
     d->m_tabWidget->setCurrentIndex(state.toMap()[QLatin1String("currentIndex")].toInt());
+}
+
+void QToolWindowManagerArea::beforeTabButtonChanged(QWidget* toolWindow)
+{
+    releaseTabButtons(toolWindow);
+}
+
+void QToolWindowManagerArea::tabButtonChanged(QWidget* toolWindow)
+{
+    applyTabButtons(toolWindow);
 }

@@ -150,6 +150,16 @@ void QAbstractToolWindowManagerArea::restoreState(const QVariant &state)
     Q_UNUSED(state);
 }
 
+void QAbstractToolWindowManagerArea::beforeTabButtonChanged(QWidget* toolWindow)
+{
+  Q_UNUSED(toolWindow);
+}
+
+void QAbstractToolWindowManagerArea::tabButtonChanged(QWidget* toolWindow)
+{
+  Q_UNUSED(toolWindow);
+}
+
 /*!
  * When user starts dragging tool windows from the area, it continues to receive mouse events
  * even if the mouse pointer leaves its boundaries. Call this function on every mouse move or

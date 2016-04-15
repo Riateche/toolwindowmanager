@@ -565,6 +565,23 @@ QRubberBand *QToolWindowManager::lineRubberBand() const
     return d->m_lineRubberBand;
 }
 
+void QToolWindowManager::setTabButton(QWidget* toolWindow, QTabBar::ButtonPosition position, QWidget* widget) {
+  Q_D(QToolWindowManager);
+  QAbstractToolWindowManagerArea *area = areaFor(toolWindow);
+  if (area)
+      area->beforeTabButtonChanged(toolWindow);
+  switch(position) {
+  case QTabBar::LeftSide:
+      d->m_toolWindowData[toolWindow].leftButtonWidget = widget;
+      break;
+  case QTabBar::RightSide:
+      d->m_toolWindowData[toolWindow].rightButtonWidget = widget;
+      break;
+  }
+  if (area)
+      area->tabButtonChanged(toolWindow);
+}
+
 /*!
  * Create a splitter. Reimplement this function if you want to use your own splitter subclass.
  */

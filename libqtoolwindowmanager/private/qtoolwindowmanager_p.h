@@ -170,6 +170,14 @@ public:
 
     QAbstractToolWindowManagerArea * createAndSetupArea();
 
+    struct ToolWindowData {
+      ToolWindowData() : leftButtonWidget(0), rightButtonWidget(0) {}
+      QWidget *leftButtonWidget;
+      QWidget *rightButtonWidget;
+    };
+
+    QHash<QWidget *, ToolWindowData> m_toolWindowData;
+
     QToolWindowManager *q_ptr;
 
 };
@@ -191,6 +199,7 @@ class QToolWindowManagerAreaPrivate
     Q_DECLARE_PUBLIC(QToolWindowManagerArea)
 public:
     QToolWindowManager *m_manager;
+    QToolWindowManagerPrivate *m_d_manager;
 
 #if QT_VERSION >= 0x050000
     QTabWidget *m_tabWidget;

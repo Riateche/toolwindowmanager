@@ -98,6 +98,20 @@ ToolWindowManager::ToolWindowManager(QWidget *parent) :
     ui->toolWindowManager->addToolWindow(toolWindows[5],
             QToolWindowManager::ReferenceTopOf, ui->toolWindowManager->areaFor(toolWindows[4]));
 
+    QToolButton* tabButton1 = new QToolButton();
+    tabButton1->setText(tr("t1"));
+
+    QToolButton* tabButton2 = new QToolButton();
+    tabButton2->setText(tr("t2"));
+    QWidget* tabButton2WithLabel = new QWidget();
+
+    QHBoxLayout* layout = new QHBoxLayout(tabButton2WithLabel);
+    layout->addWidget(new QLabel(tr("Custom label")));
+    layout->addWidget(tabButton2);
+    ui->toolWindowManager->setTabButton(toolWindows[2], QTabBar::LeftSide, tabButton1);
+    ui->toolWindowManager->setTabButton(toolWindows[3], QTabBar::LeftSide, tabButton2WithLabel);
+    toolWindows[3]->setWindowTitle("");
+
     resize(600, 400);
     on_actionRestoreState_triggered();
 }
