@@ -62,20 +62,22 @@
 #define TOOLWINDOWMANAGER_H
 
 #include <QMainWindow>
+#include "qtoolwindowmanager.h"
 
 namespace Ui {
 class ToolWindowManager;
 }
 
-class ToolWindowManager : public QMainWindow
+class ToolWindowManagerExample : public QMainWindow
 {
     Q_OBJECT
 public:
-    explicit ToolWindowManager(QWidget *parent = 0);
-    ~ToolWindowManager();
+    explicit ToolWindowManagerExample(QWidget *parent = 0);
+    ~ToolWindowManagerExample();
 
 private:
     Ui::ToolWindowManager *ui;
+    QToolWindowManager *toolWindowManager;
     QList<QAction*> actions;
 
 private slots:

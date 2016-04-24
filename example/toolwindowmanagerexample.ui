@@ -28,7 +28,7 @@
      <number>0</number>
     </property>
     <item>
-     <widget class="QToolWindowManager" name="toolWindowManager" native="true"/>
+     <widget class="QMdiArea" name="mdiArea"/>
     </item>
    </layout>
   </widget>
@@ -105,14 +105,6 @@
   </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
- <customwidgets>
-  <customwidget>
-   <class>QToolWindowManager</class>
-   <extends>QWidget</extends>
-   <header>qtoolwindowmanager.h</header>
-   <container>1</container>
-  </customwidget>
- </customwidgets>
  <resources/>
  <connections/>
 </ui>

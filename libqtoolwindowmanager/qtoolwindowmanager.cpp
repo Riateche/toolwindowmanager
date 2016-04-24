@@ -377,9 +377,15 @@ QAbstractToolWindowManagerArea *QToolWindowManager::areaFor(QWidget *toolWindow)
 void QToolWindowManagerPrivate::moveToolWindows(const QWidgetList &toolWindows,
                                          const QToolWindowManagerAreaReference& area_param)
 {
+    if (toolWindows.isEmpty()) { return; }
     Q_Q(QToolWindowManager);
     QToolWindowManagerAreaReference area = area_param;
+    qDebug() << toolWindows;
+    QSize previousSize;
     foreach (QWidget *toolWindow, toolWindows) {
+        if (!previousSize.isValid() && toolWindow->isVisible()) {
+            previousSize = toolWindow->size();
+        }
         if (!m_toolWindows.contains(toolWindow)) {
             qWarning("unknown tool window");
             return;
@@ -405,6 +411,19 @@ void QToolWindowManagerPrivate::moveToolWindows(const QWidgetList &toolWindows,
         wrapper->layout()->addWidget(area);
         wrapper->move(QCursor::pos());
         wrapper->show();
+        QSize newSize;
+        foreach (QWidget *toolWindow, toolWindows) {
+            if (toolWindow->isVisible()) {
+                newSize = toolWindow->size();
+                break;
+            }
+        }
+        qDebug() << "test" << newSize << previousSize;
+        if (previousSize.isValid() && newSize.isValid()) {
+            QSize insufficientSize = previousSize - newSize;
+            qDebug() << insufficientSize << wrapper->size();
+            wrapper->resize(wrapper->size() + insufficientSize);
+        }
     } else if (area.isReference() && area.referenceType() == QToolWindowManager::ReferenceAddTo) {
         QAbstractToolWindowManagerArea *area2 =
                 static_cast<QAbstractToolWindowManagerArea*>(area.widget());

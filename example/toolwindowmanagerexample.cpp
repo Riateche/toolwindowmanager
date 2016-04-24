@@ -65,15 +65,17 @@
 #include <QtGui>
 #endif
 
-#include "toolwindowmanager.h"
-#include "ui_toolwindowmanager.h"
+#include "toolwindowmanagerexample.h"
+#include "ui_toolwindowmanagerexample.h"
 
-ToolWindowManager::ToolWindowManager(QWidget *parent) :
+ToolWindowManagerExample::ToolWindowManagerExample(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::ToolWindowManager)
 {
     ui->setupUi(this);
-    connect(ui->toolWindowManager, SIGNAL(toolWindowVisibilityChanged(QWidget*,bool)),
+    toolWindowManager = new QToolWindowManager();
+    ui->mdiArea->addSubWindow(toolWindowManager);
+    connect(toolWindowManager, SIGNAL(toolWindowVisibilityChanged(QWidget*,bool)),
             this, SLOT(toolWindowVisibilityChanged(QWidget*,bool)));
 
     QList<QPushButton*> toolWindows;
@@ -89,66 +91,66 @@ ToolWindowManager::ToolWindowManager(QWidget *parent) :
         actions << action;
         toolWindows << b1;
     }
-    ui->toolWindowManager->addToolWindow(toolWindows[0], QToolWindowManager::EmptySpaceArea);
-    ui->toolWindowManager->addToolWindow(toolWindows[1], QToolWindowManager::LastUsedArea);
-    ui->toolWindowManager->addToolWindow(toolWindows[2], QToolWindowManager::LastUsedArea);
-    ui->toolWindowManager->addToolWindow(toolWindows[3],
-            QToolWindowManager::ReferenceLeftOf, ui->toolWindowManager->areaFor(toolWindows[2]));
-    ui->toolWindowManager->addToolWindow(toolWindows[4], QToolWindowManager::LastUsedArea);
-    ui->toolWindowManager->addToolWindow(toolWindows[5],
-            QToolWindowManager::ReferenceTopOf, ui->toolWindowManager->areaFor(toolWindows[4]));
+    toolWindowManager->addToolWindow(toolWindows[0], QToolWindowManager::EmptySpaceArea);
+    toolWindowManager->addToolWindow(toolWindows[1], QToolWindowManager::LastUsedArea);
+    toolWindowManager->addToolWindow(toolWindows[2], QToolWindowManager::LastUsedArea);
+    toolWindowManager->addToolWindow(toolWindows[3],
+            QToolWindowManager::ReferenceLeftOf, toolWindowManager->areaFor(toolWindows[2]));
+    toolWindowManager->addToolWindow(toolWindows[4], QToolWindowManager::LastUsedArea);
+    toolWindowManager->addToolWindow(toolWindows[5],
+            QToolWindowManager::ReferenceTopOf, toolWindowManager->areaFor(toolWindows[4]));
 
     QToolButton* tabButton1 = new QToolButton();
     tabButton1->setText(tr("t1"));
-    ui->toolWindowManager->setTabButton(toolWindows[2], QTabBar::RightSide, tabButton1);
+    toolWindowManager->setTabButton(toolWindows[2], QTabBar::RightSide, tabButton1);
 
     QToolButton* tabButton2 = new QToolButton();
     tabButton2->setText(tr("t2"));
 
-    ui->toolWindowManager->setTabButton(toolWindows[3], QTabBar::RightSide, tabButton2);
+    toolWindowManager->setTabButton(toolWindows[3], QTabBar::RightSide, tabButton2);
 
     resize(600, 400);
     on_actionRestoreState_triggered();
 }
 
-ToolWindowManager::~ToolWindowManager()
+ToolWindowManagerExample::~ToolWindowManagerExample()
 {
     delete ui;
 }
 
-void ToolWindowManager::toolWindowActionToggled(bool state)
+void ToolWindowManagerExample::toolWindowActionToggled(bool state)
 {
     int index = static_cast<QAction*>(sender())->data().toInt();
-    QWidget *toolWindow = ui->toolWindowManager->toolWindows()[index];
-    ui->toolWindowManager->moveToolWindow(toolWindow, state ?
+    QWidget *toolWindow = toolWindowManager->toolWindows()[index];
+    toolWindowManager->moveToolWindow(toolWindow, state ?
                                               QToolWindowManager::LastUsedArea :
                                               QToolWindowManager::NoArea);
 
 }
 
-void ToolWindowManager::toolWindowVisibilityChanged(QWidget *toolWindow, bool visible)
+void ToolWindowManagerExample::toolWindowVisibilityChanged(QWidget *toolWindow, bool visible)
 {
-    int index = ui->toolWindowManager->toolWindows().indexOf(toolWindow);
+    int index = toolWindowManager->toolWindows().indexOf(toolWindow);
     actions[index]->blockSignals(true);
     actions[index]->setChecked(visible);
     actions[index]->blockSignals(false);
 }
 
-void ToolWindowManager::on_actionSaveState_triggered()
+void ToolWindowManagerExample::on_actionSaveState_triggered()
 {
     QSettings settings;
-    settings.setValue("toolWindowManagerState", ui->toolWindowManager->saveState());
+    settings.setValue("toolWindowManagerState", toolWindowManager->saveState());
     settings.setValue("geometry", saveGeometry());
 }
 
-void ToolWindowManager::on_actionRestoreState_triggered()
+void ToolWindowManagerExample::on_actionRestoreState_triggered()
 {
     QSettings settings;
     restoreGeometry(settings.value("geometry").toByteArray());
-    ui->toolWindowManager->restoreState(settings.value("toolWindowManagerState"));
+    toolWindowManager->restoreState(settings.value("toolWindowManagerState"));
 }
 
-void ToolWindowManager::on_actionClearState_triggered()
+void ToolWindowManagerExample::on_actionClearState_triggered()
 {
     QSettings settings;
     settings.remove("geometry");
@@ -156,12 +158,12 @@ void ToolWindowManager::on_actionClearState_triggered()
     QApplication::quit();
 }
 
-void ToolWindowManager::on_actionClosableTabs_toggled(bool checked)
+void ToolWindowManagerExample::on_actionClosableTabs_toggled(bool checked)
 {
-    ui->toolWindowManager->setTabsClosable(checked);
+    toolWindowManager->setTabsClosable(checked);
 }
 
-void ToolWindowManager::on_actionInactiveTabButtonsVisible_toggled(bool checked)
+void ToolWindowManagerExample::on_actionInactiveTabButtonsVisible_toggled(bool checked)
 {
-    ui->toolWindowManager->setInactiveTabButtonsVisible(checked);
+    toolWindowManager->setInactiveTabButtonsVisible(checked);
 }

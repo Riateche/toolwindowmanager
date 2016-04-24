@@ -4,11 +4,14 @@ lessThan(QT_MAJOR_VERSION, 5) {
   QT += widgets
 }
 
-HEADERS       = toolwindowmanager.h
-SOURCES       = toolwindowmanager.cpp \
-                main.cpp
+HEADERS       = \
+    toolwindowmanagerexample.h
+SOURCES       = \
+                main.cpp \
+    toolwindowmanagerexample.cpp
 
-FORMS         = toolwindowmanager.ui
+FORMS         = \
+    toolwindowmanagerexample.ui
 
 LIBS += -lqtoolwindowmanager -L../build-libqtoolwindowmanager
 
