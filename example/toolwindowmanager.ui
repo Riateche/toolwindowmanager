@@ -38,7 +38,7 @@
      <x>0</x>
      <y>0</y>
      <width>400</width>
-     <height>22</height>
+     <height>23</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuToolWindows">
@@ -54,8 +54,15 @@
     <addaction name="actionRestoreState"/>
     <addaction name="actionClearState"/>
    </widget>
+   <widget class="QMenu" name="menuConfig">
+    <property name="title">
+     <string>Config</string>
+    </property>
+    <addaction name="actionClosableTabs"/>
+   </widget>
    <addaction name="menuToolWindows"/>
    <addaction name="menuOptions"/>
+   <addaction name="menuConfig"/>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
   <action name="actionSaveState">
@@ -71,6 +78,17 @@
   <action name="actionClearState">
    <property name="text">
     <string>Clear state and exit</string>
+   </property>
+  </action>
+  <action name="actionClosableTabs">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Closable tabs</string>
    </property>
   </action>
  </widget>

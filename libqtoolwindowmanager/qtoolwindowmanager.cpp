@@ -197,6 +197,7 @@ QToolWindowManager::QToolWindowManager(QWidget *parent) :
     d->slots_object.d = d;
     d->m_lastUsedArea = 0;
     d->m_borderSensitivity = 12;
+    d->m_tabsClosable = true;
     QSplitter *testSplitter = new QSplitter();
     d->m_rubberBandLineWidth = testSplitter->handleWidth();
     delete testSplitter;
@@ -539,6 +540,21 @@ void QToolWindowManager::setRubberBandLineWidth(int pixels)
     Q_D(QToolWindowManager);
     d->m_rubberBandLineWidth = pixels;
     emit rubberBandLineWidthChanged(pixels);
+}
+
+bool QToolWindowManager::tabsClosable() const
+{
+    const Q_D(QToolWindowManager);
+    return d->m_tabsClosable;
+}
+
+void QToolWindowManager::setTabsClosable(bool enabled)
+{
+    Q_D(QToolWindowManager);
+    if (d->m_tabsClosable != enabled) {
+        d->m_tabsClosable = enabled;
+        emit tabsClosableChanged(enabled);
+    }
 }
 
 int QToolWindowManager::rubberBandLineWidth() const

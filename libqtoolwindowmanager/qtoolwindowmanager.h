@@ -104,6 +104,9 @@ class QTOOLWINDOWMANAGER_EXPORT QToolWindowManager : public QWidget
     Q_PROPERTY(int rubberBandLineWidth READ rubberBandLineWidth
                                        WRITE setRubberBandLineWidth
                                        NOTIFY rubberBandLineWidthChanged)
+    Q_PROPERTY(bool tabsClosable READ tabsClosable
+                                 WRITE setTabsClosable
+                                 NOTIFY tabsClosableChanged)
 
 public:
     explicit QToolWindowManager(QWidget *parent = 0);
@@ -154,6 +157,9 @@ public:
     int rubberBandLineWidth() const;
     void setRubberBandLineWidth(int pixels);
 
+    bool tabsClosable() const;
+    void setTabsClosable(bool enabled);
+
     QRubberBand *rectRubberBand() const;
     QRubberBand *lineRubberBand() const;
 
@@ -164,6 +170,7 @@ Q_SIGNALS:
     void suggestionSwitchIntervalChanged(int suggestionSwitchInterval);
     void borderSensitivityChanged(int borderSensitivity);
     void rubberBandLineWidthChanged(int rubberBandLineWidth);
+    void tabsClosableChanged(bool tabsClosable);
 
 protected:
     virtual QSplitter * createSplitter();

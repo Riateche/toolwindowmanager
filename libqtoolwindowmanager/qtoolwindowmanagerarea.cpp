@@ -101,7 +101,9 @@ QToolWindowManagerArea::QToolWindowManagerArea(QToolWindowManager *manager) :
     d->m_dragCanStart = false;
     d->m_tabDragCanStart = false;
     d->m_tabWidget->setMovable(true);
-    d->m_tabWidget->setTabsClosable(true);
+    d->m_tabWidget->setTabsClosable(d->m_d_manager->m_tabsClosable);
+    connect(d->m_manager, SIGNAL(tabsClosableChanged(bool)),
+            this, SLOT(managerTabsClosableChanged(bool)));
     d->m_tabWidget->setDocumentMode(true);
     d->m_tabWidget->tabBar()->installEventFilter(this);
 }
@@ -228,6 +230,12 @@ void QToolWindowManagerArea::applyTabButtons(QWidget* toolWindow)
               QTabBar::RightSide,
               d->m_d_manager->m_toolWindowData[toolWindow].rightButtonWidget);
     }
+}
+
+void QToolWindowManagerArea::managerTabsClosableChanged(bool enabled)
+{
+    Q_D(QToolWindowManagerArea);
+    d->m_tabWidget->setTabsClosable(enabled);
 }
 
 void QToolWindowManagerAreaPrivate::check_mouse_move()

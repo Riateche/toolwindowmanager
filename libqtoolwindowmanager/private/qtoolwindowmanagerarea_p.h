@@ -112,6 +112,9 @@ private:
     friend class QToolWindowManager;
     friend class QToolWindowManagerPrivate;
     friend class QToolWindowManagerWrapper;
+
+private slots:
+    void managerTabsClosableChanged(bool enabled);
 };
 
 #endif // QT_NO_TOOLWINDOWMANAGER

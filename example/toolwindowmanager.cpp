@@ -104,13 +104,8 @@ ToolWindowManager::ToolWindowManager(QWidget *parent) :
 
     QToolButton* tabButton2 = new QToolButton();
     tabButton2->setText(tr("t2"));
-    QWidget* tabButton2WithLabel = new QWidget();
-    QHBoxLayout* layout = new QHBoxLayout(tabButton2WithLabel);
-    layout->setMargin(0);
-    layout->addWidget(new QLabel(tr("Custom label")));
-    layout->addWidget(tabButton2);
-    ui->toolWindowManager->setTabButton(toolWindows[3], QTabBar::LeftSide, tabButton2WithLabel);
-    toolWindows[3]->setWindowTitle("");
+
+    ui->toolWindowManager->setTabButton(toolWindows[3], QTabBar::LeftSide, tabButton2);
 
     resize(600, 400);
     on_actionRestoreState_triggered();
@@ -159,4 +154,9 @@ void ToolWindowManager::on_actionClearState_triggered()
     settings.remove("geometry");
     settings.remove("toolWindowManagerState");
     QApplication::quit();
+}
+
+void ToolWindowManager::on_actionClosableTabs_toggled(bool checked)
+{
+    ui->toolWindowManager->setTabsClosable(checked);
 }
