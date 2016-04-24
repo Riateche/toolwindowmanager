@@ -374,13 +374,37 @@ QAbstractToolWindowManagerArea *QToolWindowManager::areaFor(QWidget *toolWindow)
     return findClosestParent<QAbstractToolWindowManagerArea *>(toolWindow);
 }
 
+void changeWindowWidth(QWidget *child, int widthIncrement) {
+  QToolWindowManagerWrapper *wrapper =
+      findClosestParent<QToolWindowManagerWrapper*>(child);
+  QWidget *window = 0;
+  if (wrapper->isWindow()) {
+      window = wrapper;
+  } else {
+      window = findClosestParent<QMdiSubWindow*>(child);
+      if (!window) {
+          window = child->window();
+      }
+  }
+  window->resize(window->size() + QSize(widthIncrement, 0));
+}
+
+bool isSplitterFullHeight(QSplitter *splitter) {
+  QToolWindowManagerWrapper *wrapper =
+      findClosestParent<QToolWindowManagerWrapper*>(splitter);
+  if (!wrapper) {
+    qWarning("splitter wrapper not found");
+    return false;
+  }
+  return wrapper->height() - splitter->height() < 10;
+}
+
 void QToolWindowManagerPrivate::moveToolWindows(const QWidgetList &toolWindows,
                                          const QToolWindowManagerAreaReference& area_param)
 {
     if (toolWindows.isEmpty()) { return; }
     Q_Q(QToolWindowManager);
     QToolWindowManagerAreaReference area = area_param;
-    qDebug() << toolWindows;
     QSize previousSize;
     foreach (QWidget *toolWindow, toolWindows) {
         if (!previousSize.isValid() && toolWindow->isVisible()) {
@@ -402,8 +426,10 @@ void QToolWindowManagerPrivate::moveToolWindows(const QWidgetList &toolWindows,
     }
 
     if (!area.isReference() && area.areaType() == QToolWindowManager::NoArea) {
-        //do nothing
+        // just hide tool windows;
+        // nothing more to do
     } else if (!area.isReference() && area.areaType() == QToolWindowManager::NewFloatingArea) {
+        // create new floating window
         QAbstractToolWindowManagerArea *area = createAndSetupArea();
         area->addToolWindows(toolWindows);
         m_lastUsedArea = area;
@@ -418,13 +444,12 @@ void QToolWindowManagerPrivate::moveToolWindows(const QWidgetList &toolWindows,
                 break;
             }
         }
-        qDebug() << "test" << newSize << previousSize;
         if (previousSize.isValid() && newSize.isValid()) {
             QSize insufficientSize = previousSize - newSize;
-            qDebug() << insufficientSize << wrapper->size();
             wrapper->resize(wrapper->size() + insufficientSize);
         }
     } else if (area.isReference() && area.referenceType() == QToolWindowManager::ReferenceAddTo) {
+        // add to existing area
         QAbstractToolWindowManagerArea *area2 =
                 static_cast<QAbstractToolWindowManagerArea*>(area.widget());
         area2->addToolWindows(toolWindows);
@@ -449,14 +474,32 @@ void QToolWindowManagerPrivate::moveToolWindows(const QWidgetList &toolWindows,
                                     area.referenceType() == QToolWindowManager::ReferenceRightOf;
         }
         if (useParentSplitter) {
+            // insert new area into existing splitter
             if (area.referenceType() == QToolWindowManager::ReferenceBottomOf ||
                 area.referenceType() == QToolWindowManager::ReferenceRightOf)
                 indexInParentSplitter++;
             QAbstractToolWindowManagerArea *newArea = createAndSetupArea();
             newArea->addToolWindows(toolWindows);
             m_lastUsedArea = newArea;
+            QList<int> sizes = parentSplitter->sizes();
             parentSplitter->insertWidget(indexInParentSplitter, newArea);
+
+            if (parentSplitter->orientation() == Qt::Horizontal &&
+                isSplitterFullHeight(parentSplitter) &&
+                previousSize.isValid())
+            {
+                int widthIncrement = previousSize.width() + parentSplitter->handleWidth();
+                changeWindowWidth(parentSplitter, widthIncrement);
+                sizes.insert(indexInParentSplitter, previousSize.width());
+                parentSplitter->setSizes(sizes);
+            }
+
         } else {
+            // create new splitter,
+            // replace referenced area with this new splitter,
+            // insert referenced area and new area into new splitter
+            QList<int> splitterSizes;
+            splitterSizes << area.widget()->width();
             area.widget()->hide();
             area.widget()->setParent(0);
             QSplitter *splitter = createAndSetupSplitter();
@@ -469,23 +512,39 @@ void QToolWindowManagerPrivate::moveToolWindows(const QWidgetList &toolWindows,
             area.widget()->show();
             QAbstractToolWindowManagerArea *newArea = createAndSetupArea();
             if (area.referenceType() == QToolWindowManager::ReferenceTopOf ||
-                area.referenceType() == QToolWindowManager::ReferenceLeftOf)
+                area.referenceType() == QToolWindowManager::ReferenceLeftOf) {
                 splitter->insertWidget(0, newArea);
-            else
+                splitterSizes.prepend(previousSize.width());
+            } else {
                 splitter->addWidget(newArea);
-            if (parentSplitter)
+                splitterSizes << previousSize.width();
+            }
+            //QList<int> parentSplitterSizes;
+            if (parentSplitter) {
+                //parentSplitterSizes = parentSplitter->sizes();
                 parentSplitter->insertWidget(indexInParentSplitter, splitter);
-            else
+            } else {
                 wrapper->layout()->addWidget(splitter);
+            }
             newArea->addToolWindows(toolWindows);
             m_lastUsedArea = newArea;
+            if (splitter->orientation() == Qt::Horizontal &&
+                isSplitterFullHeight(splitter) &&
+                previousSize.isValid())
+            {
+                int widthIncrement = previousSize.width() + splitter->handleWidth();
+                changeWindowWidth(splitter, widthIncrement);
+                splitter->setSizes(splitterSizes);
+            }
         }
     } else if (!area.isReference() && area.areaType() == QToolWindowManager::EmptySpaceArea) {
+        // ???
         QAbstractToolWindowManagerArea *newArea = createAndSetupArea();
         q->findChild<QToolWindowManagerWrapper*>()->layout()->addWidget(newArea);
         newArea->addToolWindows(toolWindows);
         m_lastUsedArea = newArea;
     } else if (!area.isReference() && area.areaType() == QToolWindowManager::LastUsedArea) {
+        // add to (last used) existing area
         m_lastUsedArea->addToolWindows(toolWindows);
     } else {
         qWarning("invalid type");
