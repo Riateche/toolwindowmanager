@@ -830,6 +830,17 @@ void QToolWindowManagerPrivate::simplifyLayout()
             invalidSplitter->deleteLater();
         }
         if (area->toolWindows().isEmpty()) {
+            QSplitter *splitter = qobject_cast<QSplitter*>(area->parentWidget());
+            if (splitter &&
+                splitter->orientation() == Qt::Horizontal &&
+                isSplitterFullHeight(splitter) &&
+                area->isVisible())
+            {
+                QList<int> sizes = splitter->sizes();
+                sizes.removeAt(splitter->indexOf(area));
+                changeWindowWidth(splitter, -area->width());
+                splitter->setSizes(sizes);
+            }
             area->hide();
             area->setParent(0);
             area->deleteLater();
