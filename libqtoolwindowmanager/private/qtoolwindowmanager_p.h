@@ -106,6 +106,8 @@ public Q_SLOTS:
     void showNextDropSuggestion();
     //void tabCloseRequested(int index);
     void areaDestroyed(QObject *object);
+
+    void splitterMoved(int pos, int index);
 };
 
 
@@ -130,6 +132,8 @@ public:
     QList<QWidget *> m_draggedToolWindows;
     // label used to display dragged content
     QLabel *m_dragIndicator;
+
+    QHash<QSplitter*, QList<int> > m_splitterPreviousSizes;
 
     // placeholder objects used for displaying drop suggestions
     QRubberBand *m_rectRubberBand;

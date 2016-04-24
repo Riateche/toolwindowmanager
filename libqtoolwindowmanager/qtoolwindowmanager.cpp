@@ -697,8 +697,11 @@ void QToolWindowManager::setTabButton(QWidget* toolWindow, QTabBar::ButtonPositi
  */
 QSplitter *QToolWindowManager::createSplitter()
 {
+  Q_D(QToolWindowManager);
     QSplitter *splitter = new QSplitter();
     splitter->setChildrenCollapsible(false);
+    connect(splitter, SIGNAL(splitterMoved(int,int)),
+            &d->slots_object, SLOT(splitterMoved(int,int)));
     return splitter;
 }
 
@@ -1246,6 +1249,29 @@ void QToolWindowManagerPrivateSlots::areaDestroyed(QObject *object)
     if (area == d->m_lastUsedArea)
         d->m_lastUsedArea = 0;
     d->m_areas.removeOne(area);
+}
+
+void QToolWindowManagerPrivateSlots::splitterMoved(int pos, int index)
+{
+    QSplitter *splitter = qobject_cast<QSplitter*>(sender());
+    if (!splitter) { return; }
+    if (splitter->orientation() == Qt::Horizontal && isSplitterFullHeight(splitter)) {
+        QList<int> previousSizes = d->m_splitterPreviousSizes[splitter];
+        QList<int> newSizes = splitter->sizes();
+        if (previousSizes.count() == newSizes.count()) {
+            int resizedIndex = index - 1;
+            if (resizedIndex < 0 || resizedIndex >= previousSizes.count()) {
+                qWarning("QToolWindowManagerPrivateSlots::splitterMoved: invalid index");
+            } else {
+                QList<int> finalSizes = previousSizes;
+                finalSizes[resizedIndex] = newSizes[resizedIndex];
+                changeWindowWidth(splitter, newSizes[resizedIndex] - previousSizes[resizedIndex]);
+                splitter->setSizes(finalSizes);
+            }
+        }
+        d->m_splitterPreviousSizes[splitter] = splitter->sizes();
+    }
+    Q_UNUSED(pos)
 }
 
 #endif // QT_NO_TOOLWINDOWMANAGER
