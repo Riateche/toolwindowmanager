@@ -100,12 +100,12 @@ ToolWindowManager::ToolWindowManager(QWidget *parent) :
 
     QToolButton* tabButton1 = new QToolButton();
     tabButton1->setText(tr("t1"));
-    ui->toolWindowManager->setTabButton(toolWindows[2], QTabBar::LeftSide, tabButton1);
+    ui->toolWindowManager->setTabButton(toolWindows[2], QTabBar::RightSide, tabButton1);
 
     QToolButton* tabButton2 = new QToolButton();
     tabButton2->setText(tr("t2"));
 
-    ui->toolWindowManager->setTabButton(toolWindows[3], QTabBar::LeftSide, tabButton2);
+    ui->toolWindowManager->setTabButton(toolWindows[3], QTabBar::RightSide, tabButton2);
 
     resize(600, 400);
     on_actionRestoreState_triggered();
@@ -159,4 +159,9 @@ void ToolWindowManager::on_actionClearState_triggered()
 void ToolWindowManager::on_actionClosableTabs_toggled(bool checked)
 {
     ui->toolWindowManager->setTabsClosable(checked);
+}
+
+void ToolWindowManager::on_actionInactiveTabButtonsVisible_toggled(bool checked)
+{
+    ui->toolWindowManager->setInactiveTabButtonsVisible(checked);
 }

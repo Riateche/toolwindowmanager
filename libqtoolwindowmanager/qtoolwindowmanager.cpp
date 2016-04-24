@@ -198,6 +198,7 @@ QToolWindowManager::QToolWindowManager(QWidget *parent) :
     d->m_lastUsedArea = 0;
     d->m_borderSensitivity = 12;
     d->m_tabsClosable = true;
+    d->m_inactiveTabButtonsVisible = true;
     QSplitter *testSplitter = new QSplitter();
     d->m_rubberBandLineWidth = testSplitter->handleWidth();
     delete testSplitter;
@@ -555,6 +556,21 @@ void QToolWindowManager::setTabsClosable(bool enabled)
         d->m_tabsClosable = enabled;
         emit tabsClosableChanged(enabled);
     }
+}
+
+bool QToolWindowManager::inactiveTabButtonsVisible() const
+{
+  const Q_D(QToolWindowManager);
+  return d->m_inactiveTabButtonsVisible;
+}
+
+void QToolWindowManager::setInactiveTabButtonsVisible(bool enabled)
+{
+  Q_D(QToolWindowManager);
+  if (d->m_inactiveTabButtonsVisible != enabled) {
+      d->m_inactiveTabButtonsVisible = enabled;
+      emit inactiveTabButtonsVisibleChanged(enabled);
+  }
 }
 
 int QToolWindowManager::rubberBandLineWidth() const

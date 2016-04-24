@@ -107,6 +107,10 @@ class QTOOLWINDOWMANAGER_EXPORT QToolWindowManager : public QWidget
     Q_PROPERTY(bool tabsClosable READ tabsClosable
                                  WRITE setTabsClosable
                                  NOTIFY tabsClosableChanged)
+  Q_PROPERTY(bool inactiveTabButtonsVisible READ inactiveTabButtonsVisible
+                                            WRITE setInactiveTabButtonsVisible
+                                            NOTIFY inactiveTabButtonsVisibleChanged)
+
 
 public:
     explicit QToolWindowManager(QWidget *parent = 0);
@@ -160,6 +164,10 @@ public:
     bool tabsClosable() const;
     void setTabsClosable(bool enabled);
 
+    bool inactiveTabButtonsVisible() const;
+    void setInactiveTabButtonsVisible(bool enabled);
+
+
     QRubberBand *rectRubberBand() const;
     QRubberBand *lineRubberBand() const;
 
@@ -171,6 +179,7 @@ Q_SIGNALS:
     void borderSensitivityChanged(int borderSensitivity);
     void rubberBandLineWidthChanged(int rubberBandLineWidth);
     void tabsClosableChanged(bool tabsClosable);
+    void inactiveTabButtonsVisibleChanged(bool visible);
 
 protected:
     virtual QSplitter * createSplitter();

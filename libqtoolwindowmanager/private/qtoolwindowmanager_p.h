@@ -125,6 +125,7 @@ public:
     int m_borderSensitivity;
     int m_rubberBandLineWidth;
     bool m_tabsClosable;
+    bool m_inactiveTabButtonsVisible;
     // list of tool windows that are currently dragged, or empty list if there is no current drag
     QList<QWidget *> m_draggedToolWindows;
     // label used to display dragged content

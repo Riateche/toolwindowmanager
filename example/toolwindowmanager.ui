@@ -59,6 +59,7 @@
      <string>Config</string>
     </property>
     <addaction name="actionClosableTabs"/>
+    <addaction name="actionInactiveTabButtonsVisible"/>
    </widget>
    <addaction name="menuToolWindows"/>
    <addaction name="menuOptions"/>
@@ -89,6 +90,17 @@
    </property>
    <property name="text">
     <string>Closable tabs</string>
+   </property>
+  </action>
+  <action name="actionInactiveTabButtonsVisible">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Show buttons of inactive tabs</string>
    </property>
   </action>
  </widget>

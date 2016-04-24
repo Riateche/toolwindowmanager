@@ -115,6 +115,7 @@ private:
 
 private slots:
     void managerTabsClosableChanged(bool enabled);
+    void applyAllTabButtons();
 };
 
 #endif // QT_NO_TOOLWINDOWMANAGER

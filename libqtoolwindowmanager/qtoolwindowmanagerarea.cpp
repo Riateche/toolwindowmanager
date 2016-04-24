@@ -104,6 +104,10 @@ QToolWindowManagerArea::QToolWindowManagerArea(QToolWindowManager *manager) :
     d->m_tabWidget->setTabsClosable(d->m_d_manager->m_tabsClosable);
     connect(d->m_manager, SIGNAL(tabsClosableChanged(bool)),
             this, SLOT(managerTabsClosableChanged(bool)));
+    connect(d->m_manager, SIGNAL(inactiveTabButtonsVisibleChanged(bool)),
+            this, SLOT(applyAllTabButtons()));
+    connect(d->m_tabWidget, SIGNAL(currentChanged(int)),
+            this, SLOT(applyAllTabButtons()));
     d->m_tabWidget->setDocumentMode(true);
     d->m_tabWidget->tabBar()->installEventFilter(this);
 }
@@ -218,24 +222,43 @@ void QToolWindowManagerArea::applyTabButtons(QWidget* toolWindow)
         qWarning("unexpected indexOf fail");
         return;
     }
-    if (d->m_d_manager->m_toolWindowData[toolWindow].leftButtonWidget) {
-        d->m_tabWidget->tabBar()->setTabButton(
-              index,
-              QTabBar::LeftSide,
-              d->m_d_manager->m_toolWindowData[toolWindow].leftButtonWidget);
+    bool buttonVisible = d->m_d_manager->m_inactiveTabButtonsVisible ||
+                         d->m_tabWidget->currentIndex() == index;
+    if (buttonVisible) {
+        if (d->m_d_manager->m_toolWindowData[toolWindow].leftButtonWidget) {
+            d->m_tabWidget->tabBar()->setTabButton(
+                  index,
+                  QTabBar::LeftSide,
+                  d->m_d_manager->m_toolWindowData[toolWindow].leftButtonWidget);
+            d->m_d_manager->m_toolWindowData[toolWindow].leftButtonWidget->show();
+        }
+        if (d->m_d_manager->m_toolWindowData[toolWindow].rightButtonWidget) {
+            d->m_tabWidget->tabBar()->setTabButton(
+                  index,
+                  QTabBar::RightSide,
+                  d->m_d_manager->m_toolWindowData[toolWindow].rightButtonWidget);
+            d->m_d_manager->m_toolWindowData[toolWindow].rightButtonWidget->show();
+        }
+    } else {
+        releaseTabButtons(toolWindow);
     }
-    if (d->m_d_manager->m_toolWindowData[toolWindow].rightButtonWidget) {
-        d->m_tabWidget->tabBar()->setTabButton(
-              index,
-              QTabBar::RightSide,
-              d->m_d_manager->m_toolWindowData[toolWindow].rightButtonWidget);
+}
+
+void QToolWindowManagerArea::applyAllTabButtons()
+{
+    foreach(QWidget *toolWindow, toolWindows()) {
+        applyTabButtons(toolWindow);
     }
 }
 
 void QToolWindowManagerArea::managerTabsClosableChanged(bool enabled)
 {
     Q_D(QToolWindowManagerArea);
+    foreach(QWidget *toolWindow, toolWindows()) {
+        releaseTabButtons(toolWindow);
+    }
     d->m_tabWidget->setTabsClosable(enabled);
+    applyAllTabButtons();
 }
 
 void QToolWindowManagerAreaPrivate::check_mouse_move()

@@ -85,6 +85,7 @@ private slots:
     void on_actionRestoreState_triggered();
     void on_actionClearState_triggered();
     void on_actionClosableTabs_toggled(bool checked);
+    void on_actionInactiveTabButtonsVisible_toggled(bool checked);
 };
 
 #endif
