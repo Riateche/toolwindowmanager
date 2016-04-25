@@ -108,6 +108,7 @@ public Q_SLOTS:
     void areaDestroyed(QObject *object);
 
     void splitterMoved(int pos, int index);
+    bool eventFilter(QObject *object, QEvent *event);
 };
 
 

@@ -79,6 +79,7 @@ QT_BEGIN_NAMESPACE
 #include <private/qtoolwindowmanagerarea_p.h>
 #include <private/qtoolwindowmanagerwrapper_p.h>
 #include <private/qtoolwindowmanager_p.h>
+#include <qmdisubwindow.h>
 
 template<class T>
 T findClosestParent(QWidget *widget)
@@ -483,6 +484,7 @@ void QToolWindowManagerPrivate::moveToolWindows(const QWidgetList &toolWindows,
             m_lastUsedArea = newArea;
             QList<int> sizes = parentSplitter->sizes();
             parentSplitter->insertWidget(indexInParentSplitter, newArea);
+            m_splitterPreviousSizes[parentSplitter] = parentSplitter->sizes();
 
             if (parentSplitter->orientation() == Qt::Horizontal &&
                 isSplitterFullHeight(parentSplitter) &&
@@ -492,6 +494,7 @@ void QToolWindowManagerPrivate::moveToolWindows(const QWidgetList &toolWindows,
                 changeWindowWidth(parentSplitter, widthIncrement);
                 sizes.insert(indexInParentSplitter, previousSize.width());
                 parentSplitter->setSizes(sizes);
+                m_splitterPreviousSizes[parentSplitter] = parentSplitter->sizes();
             }
 
         } else {
@@ -509,6 +512,7 @@ void QToolWindowManagerPrivate::moveToolWindows(const QWidgetList &toolWindows,
             else
                 splitter->setOrientation(Qt::Horizontal);
             splitter->addWidget(area.widget());
+            m_splitterPreviousSizes[splitter] = splitter->sizes();
             area.widget()->show();
             QAbstractToolWindowManagerArea *newArea = createAndSetupArea();
             if (area.referenceType() == QToolWindowManager::ReferenceTopOf ||
@@ -517,12 +521,14 @@ void QToolWindowManagerPrivate::moveToolWindows(const QWidgetList &toolWindows,
                 splitterSizes.prepend(previousSize.width());
             } else {
                 splitter->addWidget(newArea);
+                m_splitterPreviousSizes[splitter] = splitter->sizes();
                 splitterSizes << previousSize.width();
             }
-            //QList<int> parentSplitterSizes;
+            m_splitterPreviousSizes[splitter] = splitter->sizes();
             if (parentSplitter) {
                 //parentSplitterSizes = parentSplitter->sizes();
                 parentSplitter->insertWidget(indexInParentSplitter, splitter);
+                m_splitterPreviousSizes[parentSplitter] = parentSplitter->sizes();
             } else {
                 wrapper->layout()->addWidget(splitter);
             }
@@ -535,6 +541,7 @@ void QToolWindowManagerPrivate::moveToolWindows(const QWidgetList &toolWindows,
                 int widthIncrement = previousSize.width() + splitter->handleWidth();
                 changeWindowWidth(splitter, widthIncrement);
                 splitter->setSizes(splitterSizes);
+                m_splitterPreviousSizes[splitter] = splitter->sizes();
             }
         }
     } else if (!area.isReference() && area.areaType() == QToolWindowManager::EmptySpaceArea) {
@@ -697,11 +704,12 @@ void QToolWindowManager::setTabButton(QWidget* toolWindow, QTabBar::ButtonPositi
  */
 QSplitter *QToolWindowManager::createSplitter()
 {
-  Q_D(QToolWindowManager);
+    Q_D(QToolWindowManager);
     QSplitter *splitter = new QSplitter();
     splitter->setChildrenCollapsible(false);
     connect(splitter, SIGNAL(splitterMoved(int,int)),
             &d->slots_object, SLOT(splitterMoved(int,int)));
+    splitter->installEventFilter(&d->slots_object);
     return splitter;
 }
 
@@ -826,6 +834,7 @@ void QToolWindowManagerPrivate::simplifyLayout()
                    area->parent() != validSplitter) {
             int index = validSplitter->indexOf(invalidSplitter);
             validSplitter->insertWidget(index, area);
+            m_splitterPreviousSizes[validSplitter] = validSplitter->sizes();
         }
         if (invalidSplitter) {
             invalidSplitter->hide();
@@ -841,8 +850,11 @@ void QToolWindowManagerPrivate::simplifyLayout()
             {
                 QList<int> sizes = splitter->sizes();
                 sizes.removeAt(splitter->indexOf(area));
-                changeWindowWidth(splitter, -area->width());
+                changeWindowWidth(splitter, - area->width() - splitter->handleWidth());
+                area->hide();
+                area->setParent(0);
                 splitter->setSizes(sizes);
+                m_splitterPreviousSizes[splitter] = splitter->sizes();
             }
             area->hide();
             area->setParent(0);
@@ -1256,6 +1268,21 @@ void QToolWindowManagerPrivateSlots::splitterMoved(int pos, int index)
     QSplitter *splitter = qobject_cast<QSplitter*>(sender());
     if (!splitter) { return; }
     if (splitter->orientation() == Qt::Horizontal && isSplitterFullHeight(splitter)) {
+        QToolWindowManagerWrapper *wrapper =
+            findClosestParent<QToolWindowManagerWrapper*>(splitter);
+        if (!wrapper) {
+          qWarning("splitter wrapper not found");
+          return;
+        }
+        QHash<QSplitter*, QList<int> > otherPreviousSizes;
+        foreach(QSplitter* otherSplitter, wrapper->findChildren<QSplitter*>()) {
+            if (otherSplitter != splitter &&
+                otherSplitter->orientation() == Qt::Horizontal &&
+                isSplitterFullHeight(otherSplitter))
+            {
+                otherPreviousSizes[otherSplitter] = otherSplitter->sizes();
+            }
+        }
         QList<int> previousSizes = d->m_splitterPreviousSizes[splitter];
         QList<int> newSizes = splitter->sizes();
         if (previousSizes.count() == newSizes.count()) {
@@ -1267,9 +1294,14 @@ void QToolWindowManagerPrivateSlots::splitterMoved(int pos, int index)
                 finalSizes[resizedIndex] = newSizes[resizedIndex];
                 changeWindowWidth(splitter, newSizes[resizedIndex] - previousSizes[resizedIndex]);
                 splitter->setSizes(finalSizes);
+                d->m_splitterPreviousSizes[splitter] = splitter->sizes();
             }
         }
         d->m_splitterPreviousSizes[splitter] = splitter->sizes();
+        foreach(QSplitter* otherSplitter, otherPreviousSizes.keys()) {
+            otherSplitter->setSizes(otherPreviousSizes[otherSplitter]);
+            d->m_splitterPreviousSizes[otherSplitter] = otherSplitter->sizes();
+        }
     }
     Q_UNUSED(pos)
 }
@@ -1282,4 +1314,15 @@ QT_END_NAMESPACE
 void QToolWindowManagerAreaPrivateSlots::tabCloseRequested(int index)
 {
     d->tabCloseRequested(index);
+}
+
+
+bool QToolWindowManagerPrivateSlots::eventFilter(QObject *object, QEvent *event) {
+    if (event->type() == QEvent::Resize) {
+        QSplitter* splitter = qobject_cast<QSplitter*>(object);
+        if (splitter) {
+            d->m_splitterPreviousSizes[splitter] = splitter->sizes();
+        }
+    }
+    return false;
 }
