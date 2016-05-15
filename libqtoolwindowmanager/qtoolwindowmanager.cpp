@@ -1286,7 +1286,6 @@ bool smart_splitter_change_sizes(QSplitter* splitter, int index, int delta) {
       resized_index--;
     }
     if (resized_index >= 0) {
-      qDebug() << "resized index" << resized_index;
       sizes[resized_index] += delta;
       splitter->setSizes(sizes);
       return true;
@@ -1334,7 +1333,6 @@ bool QToolWindowManagerPrivateSlots::eventFilter(QObject *object, QEvent *event)
           }
         }
         if (index >= 0) {
-          qDebug() << "move!" << index << delta;
           if (smart_splitter_change_sizes(splitter, index - 1, delta)) {
             d->changeWindowWidth(splitter, delta);
           }

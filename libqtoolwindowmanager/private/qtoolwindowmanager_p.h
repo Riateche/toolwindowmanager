@@ -65,8 +65,10 @@
 #include <QtGlobal>
 #if QT_VERSION >= 0x050000
 #include <QtWidgets/qwidget.h>
+#include <QtWidgets/qsplitter.h>
 #else
 #include <QtGui/qwidget.h>
+#include <QtGui/qsplitter.h>
 #endif
 #include <qtoolwindowmanager.h>
 #include <private/qtoolwindowmanagerarea_p.h>
