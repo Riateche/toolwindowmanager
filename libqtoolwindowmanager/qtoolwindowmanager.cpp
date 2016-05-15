@@ -389,7 +389,7 @@ void changeWindowWidth(QWidget *child, int widthIncrement) {
   window->resize(window->size() + QSize(widthIncrement, 0));
 }
 
-bool isSplitterFullHeight(QSplitter *splitter) {
+bool QToolWindowManagerPrivate::isSplitterFullHeight(QSplitter *splitter) {
   QToolWindowManagerWrapper *wrapper =
       findClosestParent<QToolWindowManagerWrapper*>(splitter);
   if (!wrapper) {
@@ -702,6 +702,7 @@ QSplitter *QToolWindowManager::createSplitter()
     splitter->setChildrenCollapsible(false);
     connect(splitter, SIGNAL(splitterMoved(int,int)),
             &d->slots_object, SLOT(splitterMoved(int,int)));
+    splitter->installEventFilter(&d->slots_object);
     return splitter;
 }
 
@@ -1236,6 +1237,34 @@ bool QToolWindowManager::event(QEvent *e)
 }
 
 
+bool QToolWindowManagerPrivateSlots::eventFilter(QObject* object, QEvent* event)
+{
+    QSplitter *splitter = qobject_cast<QSplitter*>(object);
+    if (splitter && QToolWindowManagerPrivate::isSplitterFullHeight(splitter) &&
+        splitter->orientation() == Qt::Horizontal) {
+      if (event->type() == QEvent::Resize) {
+        QResizeEvent* e = static_cast<QResizeEvent*>(event);
+        int delta = e->size().width() - e->oldSize().width();
+        if (delta != 0) {
+          QList<int> sizes = splitter->sizes();
+          int resized_index = sizes.count() - 1;
+          while (resized_index >= 0 &&
+                 (sizes[resized_index] + delta <= splitter->widget(resized_index)->minimumSize().width() ||
+                  sizes[resized_index] + delta <= splitter->widget(resized_index)->minimumSizeHint().width())) {
+            resized_index--;
+          }
+          if (resized_index >= 0) {
+            sizes[resized_index] += delta;
+            splitter->setSizes(sizes);
+            d->m_splitterPreviousSizes[splitter] = sizes;
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+}
+
 void QToolWindowManagerPrivateSlots::showNextDropSuggestion()
 {
     d->showNextDropSuggestion();
@@ -1255,7 +1284,7 @@ void QToolWindowManagerPrivateSlots::splitterMoved(int pos, int index)
 {
     QSplitter *splitter = qobject_cast<QSplitter*>(sender());
     if (!splitter) { return; }
-    if (splitter->orientation() == Qt::Horizontal && isSplitterFullHeight(splitter)) {
+    if (splitter->orientation() == Qt::Horizontal && QToolWindowManagerPrivate::isSplitterFullHeight(splitter)) {
         QList<int> previousSizes = d->m_splitterPreviousSizes[splitter];
         QList<int> newSizes = splitter->sizes();
         if (previousSizes.count() == newSizes.count()) {

@@ -102,6 +102,7 @@ class QToolWindowManagerPrivateSlots : public QObject {
     Q_OBJECT
 public:
     QToolWindowManagerPrivate* d;
+    bool eventFilter(QObject *object, QEvent *event);
 public Q_SLOTS:
     void showNextDropSuggestion();
     //void tabCloseRequested(int index);
@@ -186,6 +187,7 @@ public:
 
     QToolWindowManager *q_ptr;
 
+    static bool isSplitterFullHeight(QSplitter* splitter);
 };
 
 class QToolWindowManagerAreaPrivateSlots : public QObject {
