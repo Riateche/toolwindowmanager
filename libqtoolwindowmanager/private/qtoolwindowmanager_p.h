@@ -107,8 +107,6 @@ public Q_SLOTS:
     void showNextDropSuggestion();
     //void tabCloseRequested(int index);
     void areaDestroyed(QObject *object);
-
-    void splitterMoved(int pos, int index);
 };
 
 
@@ -133,8 +131,6 @@ public:
     QList<QWidget *> m_draggedToolWindows;
     // label used to display dragged content
     QLabel *m_dragIndicator;
-
-    QHash<QSplitter*, QList<int> > m_splitterPreviousSizes;
 
     // placeholder objects used for displaying drop suggestions
     QRubberBand *m_rectRubberBand;
@@ -187,7 +183,11 @@ public:
 
     QToolWindowManager *q_ptr;
 
+    QHash<QSplitterHandle*, int> m_tweaked_handle_pos;
+    bool m_manual_resize_in_progress;
+
     static bool isSplitterFullHeight(QSplitter* splitter);
+    void changeWindowWidth(QWidget* child, int widthIncrement);
 };
 
 class QToolWindowManagerAreaPrivateSlots : public QObject {

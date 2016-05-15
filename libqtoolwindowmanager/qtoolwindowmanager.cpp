@@ -195,6 +195,7 @@ QToolWindowManager::QToolWindowManager(QWidget *parent) :
     d_ptr = new QToolWindowManagerPrivate();
     d_ptr->q_ptr = this;
     Q_D(QToolWindowManager);
+    d->m_manual_resize_in_progress = false;
     d->slots_object.d = d;
     d->m_lastUsedArea = 0;
     d->m_borderSensitivity = 12;
@@ -375,7 +376,8 @@ QAbstractToolWindowManagerArea *QToolWindowManager::areaFor(QWidget *toolWindow)
     return findClosestParent<QAbstractToolWindowManagerArea *>(toolWindow);
 }
 
-void changeWindowWidth(QWidget *child, int widthIncrement) {
+void QToolWindowManagerPrivate::changeWindowWidth(QWidget *child, int widthIncrement) {
+  m_manual_resize_in_progress = true;
   QToolWindowManagerWrapper *wrapper =
       findClosestParent<QToolWindowManagerWrapper*>(child);
   QWidget *window = 0;
@@ -388,13 +390,13 @@ void changeWindowWidth(QWidget *child, int widthIncrement) {
       }
   }
   window->resize(window->size() + QSize(widthIncrement, 0));
+  m_manual_resize_in_progress = false;
 }
 
 bool QToolWindowManagerPrivate::isSplitterFullHeight(QSplitter *splitter) {
   QToolWindowManagerWrapper *wrapper =
       findClosestParent<QToolWindowManagerWrapper*>(splitter);
-  if (!wrapper) {
-    qWarning("splitter wrapper not found");
+  if (!wrapper) { // not added yet
     return false;
   }
   return wrapper->height() - splitter->height() < 10;
@@ -484,7 +486,6 @@ void QToolWindowManagerPrivate::moveToolWindows(const QWidgetList &toolWindows,
             m_lastUsedArea = newArea;
             QList<int> sizes = parentSplitter->sizes();
             parentSplitter->insertWidget(indexInParentSplitter, newArea);
-            m_splitterPreviousSizes[parentSplitter] = parentSplitter->sizes();
 
             if (parentSplitter->orientation() == Qt::Horizontal &&
                 isSplitterFullHeight(parentSplitter) &&
@@ -494,7 +495,6 @@ void QToolWindowManagerPrivate::moveToolWindows(const QWidgetList &toolWindows,
                 changeWindowWidth(parentSplitter, widthIncrement);
                 sizes.insert(indexInParentSplitter, previousSize.width());
                 parentSplitter->setSizes(sizes);
-                m_splitterPreviousSizes[parentSplitter] = parentSplitter->sizes();
             }
 
         } else {
@@ -512,7 +512,6 @@ void QToolWindowManagerPrivate::moveToolWindows(const QWidgetList &toolWindows,
             else
                 splitter->setOrientation(Qt::Horizontal);
             splitter->addWidget(area.widget());
-            m_splitterPreviousSizes[splitter] = splitter->sizes();
             area.widget()->show();
             QAbstractToolWindowManagerArea *newArea = createAndSetupArea();
             if (area.referenceType() == QToolWindowManager::ReferenceTopOf ||
@@ -521,14 +520,11 @@ void QToolWindowManagerPrivate::moveToolWindows(const QWidgetList &toolWindows,
                 splitterSizes.prepend(previousSize.width());
             } else {
                 splitter->addWidget(newArea);
-                m_splitterPreviousSizes[splitter] = splitter->sizes();
                 splitterSizes << previousSize.width();
             }
-            m_splitterPreviousSizes[splitter] = splitter->sizes();
             if (parentSplitter) {
                 //parentSplitterSizes = parentSplitter->sizes();
                 parentSplitter->insertWidget(indexInParentSplitter, splitter);
-                m_splitterPreviousSizes[parentSplitter] = parentSplitter->sizes();
             } else {
                 wrapper->layout()->addWidget(splitter);
             }
@@ -541,7 +537,6 @@ void QToolWindowManagerPrivate::moveToolWindows(const QWidgetList &toolWindows,
                 int widthIncrement = previousSize.width() + splitter->handleWidth();
                 changeWindowWidth(splitter, widthIncrement);
                 splitter->setSizes(splitterSizes);
-                m_splitterPreviousSizes[splitter] = splitter->sizes();
             }
         }
     } else if (!area.isReference() && area.areaType() == QToolWindowManager::EmptySpaceArea) {
@@ -699,16 +694,29 @@ void QToolWindowManager::setTabButton(QWidget* toolWindow, QTabBar::ButtonPositi
       area->tabButtonChanged(toolWindow);
 }
 
+class WatchableSplitter : public QSplitter {
+public:
+  WatchableSplitter(QObject* watcher) : m_watcher(watcher) { }
+
+
+
+private:
+  QObject* m_watcher;
+  QSplitterHandle* createHandle() {
+    QSplitterHandle* r = QSplitter::createHandle();
+    r->installEventFilter(m_watcher);
+    return r;
+  }
+};
+
 /*!
  * Create a splitter. Reimplement this function if you want to use your own splitter subclass.
  */
 QSplitter *QToolWindowManager::createSplitter()
 {
     Q_D(QToolWindowManager);
-    QSplitter *splitter = new QSplitter();
+    QSplitter *splitter = new WatchableSplitter(&d->slots_object);
     splitter->setChildrenCollapsible(false);
-    connect(splitter, SIGNAL(splitterMoved(int,int)),
-            &d->slots_object, SLOT(splitterMoved(int,int)));
     splitter->installEventFilter(&d->slots_object);
     return splitter;
 }
@@ -834,7 +842,6 @@ void QToolWindowManagerPrivate::simplifyLayout()
                    area->parent() != validSplitter) {
             int index = validSplitter->indexOf(invalidSplitter);
             validSplitter->insertWidget(index, area);
-            m_splitterPreviousSizes[validSplitter] = validSplitter->sizes();
         }
         if (invalidSplitter) {
             invalidSplitter->hide();
@@ -854,7 +861,6 @@ void QToolWindowManagerPrivate::simplifyLayout()
                 area->hide();
                 area->setParent(0);
                 splitter->setSizes(sizes);
-                m_splitterPreviousSizes[splitter] = splitter->sizes();
             }
             area->hide();
             area->setParent(0);
@@ -1263,53 +1269,6 @@ void QToolWindowManagerPrivateSlots::areaDestroyed(QObject *object)
     d->m_areas.removeOne(area);
 }
 
-void QToolWindowManagerPrivateSlots::splitterMoved(int pos, int index)
-{
-    QSplitter *splitter = qobject_cast<QSplitter*>(sender());
-    if (!splitter) { return; }
-    if (splitter->orientation() == Qt::Horizontal && QToolWindowManagerPrivate::isSplitterFullHeight(splitter)) {
-        QToolWindowManagerWrapper *wrapper =
-            findClosestParent<QToolWindowManagerWrapper*>(splitter);
-        if (!wrapper) {
-          qWarning("splitter wrapper not found");
-          return;
-        }
-        QHash<QSplitter*, QList<int> > otherPreviousSizes;
-        foreach(QSplitter* otherSplitter, wrapper->findChildren<QSplitter*>()) {
-            if (otherSplitter != splitter &&
-                otherSplitter->orientation() == Qt::Horizontal &&
-                QToolWindowManagerPrivate::isSplitterFullHeight(otherSplitter))
-            {
-                otherPreviousSizes[otherSplitter] = otherSplitter->sizes();
-            }
-        }
-        QList<int> previousSizes = d->m_splitterPreviousSizes[splitter];
-        QList<int> newSizes = splitter->sizes();
-        if (previousSizes.count() == newSizes.count()) {
-            int resizedIndex = index - 1;
-            if (resizedIndex < 0 || resizedIndex >= previousSizes.count()) {
-                qWarning("QToolWindowManagerPrivateSlots::splitterMoved: invalid index");
-            } else {
-                QList<int> finalSizes = previousSizes;
-                finalSizes[resizedIndex] = newSizes[resizedIndex];
-                changeWindowWidth(splitter, newSizes[resizedIndex] - previousSizes[resizedIndex]);
-                splitter->setSizes(finalSizes);
-                d->m_splitterPreviousSizes[splitter] = splitter->sizes();
-            }
-        }
-        d->m_splitterPreviousSizes[splitter] = splitter->sizes();
-        foreach(QSplitter* otherSplitter, otherPreviousSizes.keys()) {
-            otherSplitter->setSizes(otherPreviousSizes[otherSplitter]);
-            d->m_splitterPreviousSizes[otherSplitter] = otherSplitter->sizes();
-        }
-    }
-    Q_UNUSED(pos)
-}
-
-#endif // QT_NO_TOOLWINDOWMANAGER
-
-QT_END_NAMESPACE
-
 
 void QToolWindowManagerAreaPrivateSlots::tabCloseRequested(int index)
 {
@@ -1317,32 +1276,77 @@ void QToolWindowManagerAreaPrivateSlots::tabCloseRequested(int index)
 }
 
 
+bool smart_splitter_change_sizes(QSplitter* splitter, int index, int delta) {
+  if (delta != 0) {
+    QList<int> sizes = splitter->sizes();
+    int resized_index = index;
+    while (resized_index >= 0 &&
+           (sizes[resized_index] + delta <= splitter->widget(resized_index)->minimumSize().width() ||
+            sizes[resized_index] + delta <= splitter->widget(resized_index)->minimumSizeHint().width())) {
+      resized_index--;
+    }
+    if (resized_index >= 0) {
+      qDebug() << "resized index" << resized_index;
+      sizes[resized_index] += delta;
+      splitter->setSizes(sizes);
+      return true;
+    }
+  }
+  return false;
+}
+
 bool QToolWindowManagerPrivateSlots::eventFilter(QObject *object, QEvent *event) {
   QSplitter *splitter = qobject_cast<QSplitter*>(object);
-  if (splitter && event->type() == QEvent::Resize) {
-    d->m_splitterPreviousSizes[splitter] = splitter->sizes();
-  }
   if (splitter && QToolWindowManagerPrivate::isSplitterFullHeight(splitter) &&
       splitter->orientation() == Qt::Horizontal) {
-    if (event->type() == QEvent::Resize) {
+    if (event->type() == QEvent::Resize && !d->m_manual_resize_in_progress) {
       QResizeEvent* e = static_cast<QResizeEvent*>(event);
       int delta = e->size().width() - e->oldSize().width();
-      if (delta != 0) {
-        QList<int> sizes = splitter->sizes();
-        int resized_index = sizes.count() - 1;
-        while (resized_index >= 0 &&
-               (sizes[resized_index] + delta <= splitter->widget(resized_index)->minimumSize().width() ||
-                sizes[resized_index] + delta <= splitter->widget(resized_index)->minimumSizeHint().width())) {
-          resized_index--;
+      return smart_splitter_change_sizes(splitter, splitter->count() - 1, delta);
+    }
+  }
+  QSplitterHandle *handle = qobject_cast<QSplitterHandle*>(object);
+  if (handle) {
+    QSplitter *splitter = handle->splitter();
+    if (splitter && QToolWindowManagerPrivate::isSplitterFullHeight(splitter) &&
+        splitter->orientation() == Qt::Horizontal) {
+      if (event->type() == QEvent::MouseButtonPress ||
+          event->type() == QEvent::MouseButtonRelease) {
+        QMouseEvent* e = static_cast<QMouseEvent*>(event);
+        if (e->button() == Qt::LeftButton) {
+          if (event->type() == QEvent::MouseButtonPress) {
+            d->m_tweaked_handle_pos[handle] = e->globalPos().x();
+          } else {
+            d->m_tweaked_handle_pos.remove(handle);
+          }
         }
-        if (resized_index >= 0) {
-          sizes[resized_index] += delta;
-          splitter->setSizes(sizes);
-          d->m_splitterPreviousSizes[splitter] = sizes;
-          return true;
+        return true;
+      }
+      if (event->type() == QEvent::MouseMove) {
+        QMouseEvent* e = static_cast<QMouseEvent*>(event);
+        int delta = e->globalPos().x() - d->m_tweaked_handle_pos[handle];
+        d->m_tweaked_handle_pos[handle] = e->globalPos().x();
+        int index = -1;
+        for(int i = 0; i < splitter->count(); i++) {
+          if (splitter->handle(i) == handle) {
+            index = i;
+            break;
+          }
         }
+        if (index >= 0) {
+          qDebug() << "move!" << index << delta;
+          if (smart_splitter_change_sizes(splitter, index - 1, delta)) {
+            d->changeWindowWidth(splitter, delta);
+          }
+        }
+        return true;
       }
     }
   }
   return false;
 }
+
+#endif // QT_NO_TOOLWINDOWMANAGER
+
+QT_END_NAMESPACE
+
